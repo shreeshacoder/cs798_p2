@@ -1,0 +1,42 @@
+
+
+syntax = "proto3";
+
+
+package NfsProtocol;
+
+service NfsServer {
+
+	rpc mkdir(mkdir_request) returns (mkdir_response) {}
+
+	// rpc rmdir(rmdir_request) returns (rmdir_response) {}
+
+	// rpc read(read_request) returns (read_response) {}
+
+	// rpc write(write_request) returns (write_response) {}
+
+	// rpc remove(remove_request) returns (remove_response) {}
+
+	// rpc getattr(getattr_request) returns (getattr_response) {}
+
+
+}
+
+message attributes {
+	uint64 a = 1;
+	uint64 b = 2;
+	uint64 c = 3;
+	uint64 d = 4;
+}
+
+message mkdir_request {
+	string dirfh = 1;
+	string name = 2;
+	attributes attr = 3;
+}
+
+message mkdir_response {
+	string fh = 1;
+	attributes attr = 2;
+}
+
