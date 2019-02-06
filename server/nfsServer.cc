@@ -1,14 +1,11 @@
 
-#include <iostream>
-#include <string>
-
 #include <grpc/grpc.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
 #include <grpcpp/server_context.h>
 #include <grpcpp/security/server_credentials.h>
 
-#include "proto/schema.grpc.pb.h"
+#include "../proto/schema.grpc.pb.h"
 	
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -20,8 +17,6 @@ using grpc::Status;
 
 using NfsProtocol::mkdir_response;
 using NfsProtocol::mkdir_request;
-// using schema::aByte;
-// using schema::DBlock;
 using NfsProtocol::NfsServer;
 
 
