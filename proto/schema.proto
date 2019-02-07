@@ -7,9 +7,15 @@ package NfsProtocol;
 
 service NfsServer {
 
-	rpc mkdir(mkdir_request) returns (mkdir_response) {}
+	rpc server_mkdir(mkdir_request) returns (c_response) {}
 
-	// rpc rmdir(rmdir_request) returns (rmdir_response) {}
+	rpc server_rmdir(rmdir_request) returns (c_response) {}
+
+	rpc server_rename(rename_request) returns (c_response) {}
+
+	// rpc server_open(open_request) returns (open_response) {}
+
+	// rpc server_create(create_request) returns (create_response) {}
 
 	// rpc read(read_request) returns (read_response) {}
 
@@ -19,14 +25,39 @@ service NfsServer {
 
 	// rpc getattr(getattr_request) returns (getattr_response) {}
 
+	// rpc readdir(readdir_request) returns (readdir_response) {}
+	
+	// rpc makenode(makenode_request) returns (makenode_response) {}
+
+	// rpc truncate(truncate_request) returns (truncate_response) {}
+
+	// rpc release(release_request) returns (release_response) {}
+	
+	// rpc fsync(fsync_request) returns (fsyn_response) {}  
+
+	// rpc unlink(unlink_request) returns (unlin_response) {}
+
+	// rpc flush(flush_request) returns (flush_response) {}
+	
+	// rpc utimens (utimens_request) returns (utimens_response) {}
 
 }
 
 message attributes {
-	uint64 a = 1;
-	uint64 b = 2;
-	uint64 c = 3;
-	uint64 d = 4;
+	uint64 st_dev = 1;
+	uint64 st_ino = 2;
+	uint64 st_mode = 3;
+	uint64 st_nlink = 4;
+	uint64 st_uid = 5;
+	uint64 st_gid = 6;
+	uint64 st_rdev = 7;
+	uint64 st_size = 8;
+	uint64 st_catime = 9;
+	uint64 st_cmtime = 10;
+	uint64 st_cctime = 11;
+	uint64 st_blksize = 12;
+	uint64 st_blocks = 13;
+	uint64 st_attr = 14;
 }
 
 message mkdir_request {
@@ -35,8 +66,19 @@ message mkdir_request {
 	attributes attr = 3;
 }
 
-message mkdir_response {
-	string fh = 1;
-	attributes attr = 2;
+message c_response {
+	uint64 success = 1;
+	uint64 ern = 2;
 }
+
+message rmdir_request {
+	string dirfh = 1;
+}
+
+message rename_request {
+	string todir = 1;
+	string fromdir = 2;
+}
+
+
 
