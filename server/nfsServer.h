@@ -38,8 +38,9 @@ class serverImplementation final : public NfsServer::Service {
 		
 		Status server_mkdir(ServerContext * context, const mkdir_request * request, c_response * response) override;
 		Status server_rmdir(ServerContext * context, const rmdir_request * request, c_response * response) override;
-		
 		Status server_rename(ServerContext * context, const rename_request * request, c_response * response) override;
+		Status server_open(ServerContext * context, const open_request * request, d_response * response) override;
+		Status server_create(ServerContext * context, const create_request * request, d_response * response) override;
 
 
 
