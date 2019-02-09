@@ -1,44 +1,36 @@
+#include "nfsClient.h"
 
-#include <grpc/grpc.h>
-#include <grpcpp/channel.h>
-#include <grpcpp/client_context.h>
-#include <grpcpp/create_channel.h>
-#include <grpcpp/security/credentials.h>
-
-#include "../proto/schema.grpc.pb.h"
-
-using grpc::Channel;
-using grpc::ClientContext;
-using grpc::ClientReader;
-using grpc::ClientReaderWriter;
-using grpc::ClientWriter;
-using grpc::Status;
-
-using NfsProtocol::mkdir_response;
 using NfsProtocol::mkdir_request;
+using NfsProtocol::c_response;
 using NfsProtocol::NfsServer;
 
-
-class NfsClient {
-	public :
-		NfsClient(std::shared_ptr<Channel> channel)
-			: stub_(NfsServer::NewStub(channel)) {}
-
-	void mkdir() {
-
-	}
-
-	
-
-	private :
-		std::unique_ptr<NfsServer::Stub> stub_;
+clientImplementation::clientImplementation(std::shared_ptr<Channel> channel)
+      : stub_(NfsServer::NewStub(channel)) {}
 
 
-};
+int clientImplementation::client_mkdir(std::string path, mode_t mode) {
 
+	return 0;
+}
 
-int main() {
+int clientImplementation::client_rmdir(std::string path) {
 
+	return 0;
+}
+
+int clientImplementation::client_rename(std::string from, std::string to) {
+
+	return 0;
+}
+
+int clientImplementation::client_open(std::string path, struct fuse_file_info *fi) {
+
+	return 0;
+}
+
+int clientImplementation::client_create(std::string path, mode_t mode, struct fuse_file_info *fi) {
+
+	return 0;
 }
 
 

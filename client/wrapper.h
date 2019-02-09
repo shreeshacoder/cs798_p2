@@ -5,6 +5,7 @@
 
 #include <sys/stat.h>
 #include <fuse.h>
+#include "nfsClient.h"
 
 void set_rootdir(const char *path);
 

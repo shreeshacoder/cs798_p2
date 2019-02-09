@@ -1,11 +1,8 @@
 #include "wrapper.h"
-// #include "nfsClient.h"
+#include "nfsClient.h"
 #include <stdio.h>
 
-void set_rootdir(const char *path) {
-
-}
-
+static clientImplementation nfsClient(grpc::CreateChannel("0.0.0.0:3110", grpc::InsecureChannelCredentials()));
 
 int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi) {
 	printf("wrapper get attr\n");
