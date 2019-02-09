@@ -2,6 +2,7 @@
 #define NFSSERVER
 
 #include <sys/stat.h>
+#include <dirent.h>
 
 #include <grpc/grpc.h>
 #include <grpcpp/server.h>
@@ -19,31 +20,26 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 
-using NfsProtocol::mkdir_request;
-using NfsProtocol::rmdir_request;
-using NfsProtocol::rename_request;
 using NfsProtocol::c_response;
+using NfsProtocol::mkdir_request;
 using NfsProtocol::NfsServer;
+using NfsProtocol::rename_request;
+using NfsProtocol::rmdir_request;
 
+class serverImplementation final : public NfsServer::Service
+{
 
-class serverImplementation final : public NfsServer::Service {
+  private:
+	std::string base;
 
-	private :
+  public:
+	serverImplementation(std::string path);
 
-		std::string base;
-
-	public :
-
-		serverImplementation(std::string path);
-		
-		Status server_mkdir(ServerContext * context, const mkdir_request * request, c_response * response) override;
-		Status server_rmdir(ServerContext * context, const rmdir_request * request, c_response * response) override;
-		Status server_rename(ServerContext * context, const rename_request * request, c_response * response) override;
-		Status server_open(ServerContext * context, const open_request * request, d_response * response) override;
-		Status server_create(ServerContext * context, const create_request * request, d_response * response) override;
-
-
-
+	Status server_mkdir(ServerContext *context, const mkdir_request *request, c_response *response) override;
+	Status server_rmdir(ServerContext *context, const rmdir_request *request, c_response *response) override;
+	Status server_rename(ServerContext *context, const rename_request *request, c_response *response) override;
+	Status server_open(ServerContext *context, const open_request *request, d_response *response) override;
+	Status server_create(ServerContext *context, const create_request *request, d_response *response) override;
 };
 
-#endif 
+#endif
