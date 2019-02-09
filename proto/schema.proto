@@ -17,6 +17,8 @@ service NfsServer {
 
 	rpc server_create(create_request) returns (d_response) {}
 
+	rpc read_directory(readdir_request) returns (readdir_response) {}
+
 	// rpc read(read_request) returns (read_response) {}
 
 	// rpc write(write_request) returns (write_response) {}
@@ -24,8 +26,6 @@ service NfsServer {
 	// rpc remove(remove_request) returns (remove_response) {}
 
 	// rpc getattr(getattr_request) returns (getattr_response) {}
-
-	// rpc readdir(readdir_request) returns (readdir_response) {}
 	
 	// rpc makenode(makenode_request) returns (makenode_response) {}
 
@@ -100,3 +100,21 @@ message d_response {
 	int32 status = 1;
 	f_info fi = 2;
 }
+
+message read_directory_single_object {
+	string name = 1;
+	attributes attr = 2;
+}
+
+message readdir_request {
+	string path = 1;
+	f_info fi = 2;
+}
+
+message readdir_response {
+	repeated read_directory_single_object objects = 1;
+	int32 status = 2;
+}
+
+
+
