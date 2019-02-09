@@ -4,6 +4,11 @@
 
 static clientImplementation nfsClient(grpc::CreateChannel("0.0.0.0:3110", grpc::InsecureChannelCredentials()));
 
+std::string toStr(const char * path) {
+	std::string a(path);
+	return a;
+}
+
 int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi) {
 	printf("wrapper get attr\n");
 	return 0;
@@ -21,7 +26,7 @@ int wrapper_mknod(const char *path, mode_t mode, dev_t dev) {
 
 int wrapper_mkdir(const char *path, mode_t mode) {
 	printf("wrapper mkdir\n");
-	return 0;
+	return nfsClient.client_mkdir(toStr(path), mode);
 }
 
 int wrapper_unlink(const char *path) {
@@ -31,7 +36,7 @@ int wrapper_unlink(const char *path) {
 
 int wrapper_rmdir(const char *path) {
 	printf("wrapper rmdir\n");
-	return 0;
+	return nfsClient.client_rmdir(toStr(path));
 }
 
 int wrapper_symlink(const char *path, const char *link) {
@@ -41,7 +46,7 @@ int wrapper_symlink(const char *path, const char *link) {
 
 int wrapper_rename(const char *path, const char *newpath, unsigned int flag) {
 	printf("wrapper rename\n");
-	return 0;
+	return nfsClient.client_rename(toStr(path), toStr(newpath));
 }
 
 int wrapper_link(const char *path, const char *newpath) {
@@ -56,7 +61,7 @@ int wrapper_chmod(const char *path, mode_t mode) {
 
 int wrapper_create(const char * path, mode_t mode, struct fuse_file_info * fileInfo) {
 	printf("wrapper create\n");
-	return 0;
+	return nfsClient.client_create(toStr(path), mode, fileInfo);
 }
 
 int wrapper_chown(const char *path, uid_t uid, gid_t gid) {
@@ -76,7 +81,7 @@ int wrapper_utime(const char *path, struct utimbuf *ubuf) {
 
 int wrapper_open(const char *path, struct fuse_file_info *fileInfo) {
 	printf("wrapper open\n");
-	return 0;
+	return nfsClient.client_open(toStr(path), fileInfo);
 }
 
 int wrapper_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo) {
