@@ -1,13 +1,10 @@
 #include "wrapper.h"
 #include "nfsClient.h"
+#include "../utils/utils.h"
 #include <stdio.h>
 
 static clientImplementation nfsClient(grpc::CreateChannel("0.0.0.0:3110", grpc::InsecureChannelCredentials()));
 
-std::string toStr(const char * path) {
-	std::string a(path);
-	return a;
-}
 
 int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi) {
 	printf("wrapper get attr\n");

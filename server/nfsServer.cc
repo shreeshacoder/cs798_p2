@@ -1,5 +1,5 @@
-#include <sys/stat.h> 	// mkdir
-#include <unistd.h>		// rmdir
+#include <sys/stat.h>
+#include <unistd.h>
 
 #include "nfsServer.h"
 

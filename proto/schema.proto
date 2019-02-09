@@ -43,6 +43,11 @@ service NfsServer {
 
 }
 
+message proto_file_info {
+	uint64 fh = 1;
+	uint32 flags = 2;
+}
+
 message attributes {
 	uint64 st_dev = 1;
 	uint64 st_ino = 2;
@@ -62,8 +67,7 @@ message attributes {
 
 message mkdir_request {
 	string dirfh = 1;
-	string name = 2;
-	attributes attr = 3;
+	attributes attr = 2;
 }
 
 message c_response {
@@ -80,23 +84,19 @@ message rename_request {
 	string fromdir = 2;
 }
 
-message f_info {
-	uint64 fh = 1;
-	uint32 flags = 2;
-}
-
 message open_request {
 	string path = 1;
-	f_info fi = 2;
+	proto_file_info pfi = 2;
 }
 
 message create_request {
 	string path = 1;
-	uint64 mode = 2;
-	f_info fi = 3;
+	attributes attr = 2;
+	proto_file_info pfi = 3;
 }
 
 message d_response {
-	int32 status = 1;
-	f_info fi = 2;
+	uint64 success = 1;
+	uint64 ern = 2;
+	proto_file_info pfi = 3;
 }

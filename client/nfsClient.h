@@ -8,7 +8,7 @@
 #include <grpcpp/security/credentials.h>
 
 #include "../proto/schema.grpc.pb.h"
-// #include "src/helpers/GeneralHelpers.h"
+#include "../utils/utils.h"
 
 using grpc::Channel;
 using grpc::ClientContext;
