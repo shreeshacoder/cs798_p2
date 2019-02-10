@@ -190,18 +190,21 @@ Status serverImplementation::get_attributes(ServerContext *context, const attrib
 	struct stat st;
 
 	toCstat(request->attr(), &st);
-	if (LOG)
-		std::cout << "------------------------------------------------\n";
-	if (LOG)
-		std::cout << "GetAttributes : path passed - " << request->path() << "\n";
+	// if (LOG)
+	// 	std::cout << "------------------------------------------------\n";
+	// if (LOG)
+	// 	std::cout << "GetAttributes : path passed - " << request->path() << "\n";
 	std::string adjustedPath = this->base + request->path();
+
+	// std::cout << adjustedPath << "\n";
+
 	char *path = new char[adjustedPath.length() + 1];
 	strcpy(path, adjustedPath.c_str());
 	int res = lstat(path, &st);
 	if (res == -1)
 	{
-		if (LOG)
-			std::cout << "GetAttributes : Error getting stat -  " << errno << " Error message - " << std::strerror(errno) << "\n";
+		// if (LOG)
+		// 	std::cout << "GetAttributes : Error getting stat -  " << errno << " Error message - " << std::strerror(errno) << "\n";
 		response->set_status(-errno);
 	}
 	else
@@ -210,8 +213,8 @@ Status serverImplementation::get_attributes(ServerContext *context, const attrib
 		*response->mutable_attr() = toGstat(&st);
 	}
 
-	if (LOG)
-		std::cout << "------------------------------------------------\n\n";
+	// if (LOG)
+	// 	std::cout << "------------------------------------------------\n\n";
 
 	return Status::OK;
 }
@@ -289,6 +292,8 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 	int fileHandle = fi.fh;
 	int op;
 
+	std::cout << "in read " << filepathChars << request->offset() << request->size() << "\n";
+
 	if (fi.fh == 0)
 	{
 		fileHandle = open(filepathChars, O_RDONLY);
@@ -302,6 +307,7 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 	else
 	{
 		op = pread(fileHandle, buffer, request->size(), request->offset());
+		std::cout << "size: " << request->size() << ", "<<  buffer << "\n";
 		if (op == -1)
 		{
 			response->set_success(-1);

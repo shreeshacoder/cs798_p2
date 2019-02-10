@@ -88,7 +88,7 @@ class clientImplementation
 	int client_create(std::string path, mode_t mode, struct fuse_file_info *fi);
 	int client_truncate(std::string path, off_t size, struct fuse_file_info *fi);
 	int client_unlink(std::string path);
-	int client_read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi);
+	int client_read(std::string path, char* buffer,int size, int offset, struct fuse_file_info *fi);
 	int client_mknod(std::string path, mode_t mode, dev_t rdev);
 	std::list<DirEntry> read_directory(std::string path, int &responseCode);
 	int get_attributes(std::string path, struct stat *st);

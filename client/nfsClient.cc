@@ -226,10 +226,10 @@ std::list<DirEntry> clientImplementation::read_directory(std::string path, int &
 int clientImplementation::get_attributes(std::string path, struct stat *st)
 {
 
-	if (LOG)
-		std::cout << "------------------------------------------------\n";
-	if (LOG)
-		std::cout << "getAttributes : path passed - " << path << "\n";
+	// if (LOG)
+	// 	std::cout << "------------------------------------------------\n";
+	// if (LOG)
+	// 	std::cout << "getAttributes : path passed - " << path << "\n";
 	// Container request
 	attribute_request_object getAttributesRequestObject;
 	getAttributesRequestObject.set_path(path);
@@ -238,41 +238,43 @@ int clientImplementation::get_attributes(std::string path, struct stat *st)
 
 	// Container response
 	attribute_response_object getAttributesResponseObject;
-	if (LOG)
-		std::cout << "getAttributes : Calling server \n";
+	// if (LOG)
+	// 	std::cout << "getAttributes : Calling server \n";
 	// Actual call
 	Status status = stub_->get_attributes(&context, getAttributesRequestObject, &getAttributesResponseObject);
-	if (LOG)
-		std::cout << "getAttributes : Response from server \n";
+	// if (LOG)
+	// 	std::cout << "getAttributes : Response from server \n";
 	if (status.ok())
 	{
-		if (LOG)
-			std::cout << "getAttributes : converting response \n";
+		// if (LOG)
+		// 	std::cout << "getAttributes : converting response \n";
 		toCstat(getAttributesResponseObject.attr(), st);
-		if (LOG)
-			std::cout << "getAttributes : returning resposne \n";
+		// if (LOG)
+		// 	std::cout << "getAttributes : returning resposne \n";
 		return getAttributesResponseObject.status();
 	}
 	else
 	{
-		if (LOG)
-			std::cout << "getAttributes : Failed \n";
-		if (LOG)
-			std::cout << status.error_code() << ": " << status.error_message()
-					  << std::endl;
+		// if (LOG)
+		// 	std::cout << "getAttributes : Failed \n";
+		// if (LOG)
+		// 	std::cout << status.error_code() << ": " << status.error_message()
+		// 			  << std::endl;
 
-		if (LOG)
-			std::cout << "------------------------------------------------\n\n";
+		// if (LOG)
+		// 	std::cout << "------------------------------------------------\n\n";
 		return -1;
 	}
 }
 
 
-int clientImplementation::client_read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi) 
+int clientImplementation::client_read(std::string path, char* buffer,int size, int offset, struct fuse_file_info *fi) 
 {
 	read_request request;
 	read_response response;
 	ClientContext context;
+
+	std::cout << "reading: path, " << path << " size, " << size << " offset, " << offset << "\n";
 
 	request.set_path(path);
 	request.set_offset(offset);
