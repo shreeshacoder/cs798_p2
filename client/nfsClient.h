@@ -25,6 +25,8 @@ using NfsProtocol::mkdir_request;
 using NfsProtocol::NfsServer;
 using NfsProtocol::open_request;
 using NfsProtocol::read_directory_single_object;
+using NfsProtocol::read_request;
+using NfsProtocol::read_response;
 using NfsProtocol::readdir_request;
 using NfsProtocol::readdir_response;
 using NfsProtocol::rename_request;

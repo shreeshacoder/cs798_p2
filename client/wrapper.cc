@@ -3,7 +3,7 @@
 #include "../utils/utils.h"
 #include <stdio.h>
 
-static clientImplementation nfsClient(grpc::CreateChannel("0.0.0.0:3110", grpc::InsecureChannelCredentials()));
+static clientImplementation nfsClient(grpc::CreateChannel("localhost:3110", grpc::InsecureChannelCredentials()));
 
 int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
 {
@@ -32,7 +32,7 @@ int wrapper_mkdir(const char *path, mode_t mode)
 int wrapper_unlink(const char *path)
 {
 	printf("wrapper unlink\n");
-	return 0;
+	return nfsClient.client_unlink(path);
 }
 
 int wrapper_rmdir(const char *path)
@@ -80,7 +80,7 @@ int wrapper_chown(const char *path, uid_t uid, gid_t gid)
 int wrapper_truncate(const char *path, off_t newSize, struct fuse_file_info *fi)
 {
 	printf("wrapper truncate\n");
-	return 0;
+	return nfsClient.client_truncate(path, newSize, fi);
 }
 
 int wrapper_utime(const char *path, struct utimbuf *ubuf)
