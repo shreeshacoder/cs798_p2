@@ -13,6 +13,8 @@
 #include "../proto/schema.grpc.pb.h"
 #include "../utils/utils.h"
 
+#include "../utils/utils.h"
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -22,6 +24,7 @@ using grpc::ServerWriter;
 using grpc::Status;
 
 using NfsProtocol::mkdir_request;
+using NfsProtocol::attributes;
 using NfsProtocol::rename_request;
 using NfsProtocol::rmdir_request;
 using NfsProtocol::open_request;
@@ -31,6 +34,9 @@ using NfsProtocol::unlink_request;
 using NfsProtocol::c_response;
 using NfsProtocol::d_response;
 using NfsProtocol::read_response;
+using NfsProtocol::read_directory_single_object;
+using NfsProtocol::readdir_request;
+using NfsProtocol::readdir_response;
 using NfsProtocol::NfsServer;
 
 class serverImplementation final : public NfsServer::Service
@@ -50,6 +56,9 @@ class serverImplementation final : public NfsServer::Service
 	Status server_truncate(ServerContext *context, const create_truncate_request *request, d_response *response) override;
 	Status server_unlink(ServerContext *context, const unlink_request *request, c_response *response) override;
 	// Status server_read(ServerContext *context, const read_request *request, read_response *response) override;
+	Status read_directory(ServerContext *context, const readdir_request *request,
+						  readdir_response *response) override;
+
 };
 
 #endif

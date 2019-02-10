@@ -8,6 +8,7 @@
 #include <grpcpp/security/credentials.h>
 
 #include "../proto/schema.grpc.pb.h"
+#include "../proto/schema.pb.h"
 #include "../utils/utils.h"
 
 using grpc::Channel;
@@ -23,6 +24,9 @@ using NfsProtocol::unlink_request;
 using NfsProtocol::c_response;
 using NfsProtocol::d_response;
 using NfsProtocol::attributes;
+using NfsProtocol::read_directory_single_object;
+using NfsProtocol::readdir_request;
+using NfsProtocol::readdir_response;
 using NfsProtocol::NfsServer;
 
 // class Datastore{
@@ -82,7 +86,7 @@ class clientImplementation
 	int client_unlink(std::string path);
 	int read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi);
 	
-	// std::list<DirEntry> read_directory(std::string path, int &responseCode);
+	std::list<DirEntry> read_directory(std::string path, int &responseCode);
 
 	// int getAttributes(std::string path, struct stat *st);
 	// std::list<DirEntry> readDirectory(std::string path, int &responseCode);

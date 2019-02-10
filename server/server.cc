@@ -1,10 +1,11 @@
 #include "nfsServer.h"
 
-void runServer() {
-	
+void runServer()
+{
+
 	std::string server_address("0.0.0.0:3110");
-	
-	serverImplementation service("./");
+
+	serverImplementation service("/home/shreesha/cs680");
 
 	ServerBuilder builder;
 	builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());
@@ -14,9 +15,8 @@ void runServer() {
 	server->Wait();
 }
 
-
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
 	runServer();
-	return 0; 
+	return 0;
 }
-
