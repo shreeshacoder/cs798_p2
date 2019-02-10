@@ -238,39 +238,3 @@ int clientImplementation::read(std::string path, char* buffer,int offset, int si
 }
 
 
-
-
-
-// std::list<DirEntry> clientImplementation::read_directory(std::string path, int &responseCode)
-// {
-// 	// Container request
-// 	request request;
-// 	request.set_path(path);
-// 	ClientContext context;
-
-// 	// Container response
-// 	response response;
-
-// 	// Call
-// 	Status status = stub_->read_directory(&context, request, &response);
-// 	std::list<DirEntry> entries;
-// 	if (status.ok())
-// 	{
-// 		responseCode = response.status();
-// 		for (int i = 0; i < response.objects_size(); i++)
-// 		{
-// 			DirEntry dirEntry;
-// 			toCstat(response.objects(i).st(), &dirEntry.st);
-// 			dirEntry.name = response.objects(i).name();
-// 			entries.push_back(dirEntry);
-// 		}
-// 		return entries;
-// 	}
-// 	else
-// 	{
-// 		if (LOG)
-// 			std::cout << status.error_code() << ": " << status.error_message()
-// 					  << std::endl;
-// 		return entries;
-// 	}
-// }

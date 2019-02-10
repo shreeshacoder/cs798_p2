@@ -9,9 +9,9 @@
 
 void set_rootdir(const char *path);
 
-		int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi);
-	int wrapper_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo, fuse_readdir_flags rflags);
-	int wrapper_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo);
+int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi);
+int wrapper_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo, fuse_readdir_flags rflags);
+int wrapper_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo);
 		int wrapper_mknod(const char *path, mode_t mode, dev_t dev);
 int wrapper_mkdir(const char *path, mode_t mode);
 int wrapper_rmdir(const char *path);
