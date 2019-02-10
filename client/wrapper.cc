@@ -5,11 +5,10 @@
 
 static clientImplementation nfsClient(grpc::CreateChannel("0.0.0.0:3110", grpc::InsecureChannelCredentials()));
 
-
 int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
 {
-	printf("wrapper get attr\n");
-	return 0;
+	std::string pathstr(path);
+	return nfsClient.get_attributes(pathstr, statbuf);
 }
 
 int wrapper_readlink(const char *path, char *link, size_t size)
@@ -164,14 +163,14 @@ int wrapper_opendir(const char *path, struct fuse_file_info *fileInfo)
 
 int wrapper_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo, fuse_readdir_flags rflags)
 {
-	// int responseCode;
-	// std::string pathValue(path);
-	// std::list<DirEntry> dirEntries = nfsClient.read_directory(pathValue, responseCode);
-	// for (auto const &dirEntry : dirEntries)
-	// {
-	// 	filler(buf, dirEntry.name.c_str(), &dirEntry.st, 0, FUSE_FILL_DIR_PLUS);
-	// }
-	// return responseCode;
+	int responseCode;
+	std::string pathValue(path);
+	std::list<DirEntry> dirEntries = nfsClient.read_directory(pathValue, responseCode);
+	for (auto const &dirEntry : dirEntries)
+	{
+		filler(buf, dirEntry.name.c_str(), &dirEntry.st, 0, FUSE_FILL_DIR_PLUS);
+	}
+	return responseCode;
 }
 
 int wrapper_releasedir(const char *path, struct fuse_file_info *fileInfo)

@@ -15,19 +15,21 @@ using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
 
-using NfsProtocol::mkdir_request;
-using NfsProtocol::rmdir_request;
-using NfsProtocol::rename_request;
-using NfsProtocol::open_request;
-using NfsProtocol::create_truncate_request;
-using NfsProtocol::unlink_request;
-using NfsProtocol::c_response;
-using NfsProtocol::d_response;
+using NfsProtocol::attribute_request_object;
+using NfsProtocol::attribute_response_object;
 using NfsProtocol::attributes;
+using NfsProtocol::c_response;
+using NfsProtocol::create_truncate_request;
+using NfsProtocol::d_response;
+using NfsProtocol::mkdir_request;
+using NfsProtocol::NfsServer;
+using NfsProtocol::open_request;
 using NfsProtocol::read_directory_single_object;
 using NfsProtocol::readdir_request;
 using NfsProtocol::readdir_response;
-using NfsProtocol::NfsServer;
+using NfsProtocol::rename_request;
+using NfsProtocol::rmdir_request;
+using NfsProtocol::unlink_request;
 
 // class Datastore{
 
@@ -84,9 +86,10 @@ class clientImplementation
 	int client_create(std::string path, mode_t mode, struct fuse_file_info *fi);
 	int client_truncate(std::string path, off_t size, struct fuse_file_info *fi);
 	int client_unlink(std::string path);
-	int read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi);
-	
+	int read(std::string path, char *buffer, int offset, int size, struct fuse_file_info *fi);
+
 	std::list<DirEntry> read_directory(std::string path, int &responseCode);
+	int get_attributes(std::string path, struct stat *st);
 
 	// int getAttributes(std::string path, struct stat *st);
 	// std::list<DirEntry> readDirectory(std::string path, int &responseCode);
