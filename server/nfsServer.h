@@ -11,6 +11,7 @@
 #include <grpcpp/security/server_credentials.h>
 
 #include "../proto/schema.grpc.pb.h"
+#include "../utils/utils.h"
 
 using grpc::Server;
 using grpc::ServerBuilder;
@@ -20,11 +21,17 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 
-using NfsProtocol::c_response;
 using NfsProtocol::mkdir_request;
-using NfsProtocol::NfsServer;
 using NfsProtocol::rename_request;
 using NfsProtocol::rmdir_request;
+using NfsProtocol::open_request;
+using NfsProtocol::create_truncate_request;
+using NfsProtocol::read_request;
+using NfsProtocol::unlink_request;
+using NfsProtocol::c_response;
+using NfsProtocol::d_response;
+using NfsProtocol::read_response;
+using NfsProtocol::NfsServer;
 
 class serverImplementation final : public NfsServer::Service
 {
@@ -39,7 +46,10 @@ class serverImplementation final : public NfsServer::Service
 	Status server_rmdir(ServerContext *context, const rmdir_request *request, c_response *response) override;
 	Status server_rename(ServerContext *context, const rename_request *request, c_response *response) override;
 	Status server_open(ServerContext *context, const open_request *request, d_response *response) override;
-	Status server_create(ServerContext *context, const create_request *request, d_response *response) override;
+	Status server_create(ServerContext *context, const create_truncate_request *request, d_response *response) override;
+	Status server_truncate(ServerContext *context, const create_truncate_request *request, d_response *response) override;
+	Status server_unlink(ServerContext *context, const unlink_request *request, c_response *response) override;
+	// Status server_read(ServerContext *context, const read_request *request, read_response *response) override;
 };
 
 #endif

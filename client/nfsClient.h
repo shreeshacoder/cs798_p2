@@ -14,6 +14,15 @@ using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
 
+using NfsProtocol::mkdir_request;
+using NfsProtocol::rmdir_request;
+using NfsProtocol::rename_request;
+using NfsProtocol::open_request;
+using NfsProtocol::create_truncate_request;
+using NfsProtocol::unlink_request;
+using NfsProtocol::c_response;
+using NfsProtocol::d_response;
+using NfsProtocol::attributes;
 using NfsProtocol::NfsServer;
 
 // class Datastore{
@@ -69,16 +78,17 @@ class clientImplementation
 	int client_rename(std::string from, std::string to);
 	int client_open(std::string path, struct fuse_file_info *fi);
 	int client_create(std::string path, mode_t mode, struct fuse_file_info *fi);
-	std::list<DirEntry> read_directory(std::string path, int &responseCode);
+	int client_truncate(std::string path, off_t size, struct fuse_file_info *fi);
+	int client_unlink(std::string path);
+	int read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi);
+	
+	// std::list<DirEntry> read_directory(std::string path, int &responseCode);
 
 	// int getAttributes(std::string path, struct stat *st);
 	// std::list<DirEntry> readDirectory(std::string path, int &responseCode);
-	// int read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi);
 	// int makeNode(std::string path, mode_t mode, dev_t rdev);
-	// int truncate(std::string path, off_t size, struct fuse_file_info *fi);
 	// int release(std::string path, struct fuse_file_info *fi);
 	// int fsync(std::string path, int isdatasync, struct fuse_file_info* fi);
-	// int unlink(std::string path);
 	// int write(std::string path, const char *buf, int size, int offset, struct fuse_file_info* fi);
 	// int flush(std::string path, struct fuse_file_info *fi);
 	// int utimens(std::string path,const struct timespec *ts, struct fuse_file_info *fi);

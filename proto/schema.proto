@@ -15,8 +15,14 @@ service NfsServer {
 
 	rpc server_open(open_request) returns (d_response) {}
 
-	rpc server_create(create_request) returns (d_response) {}
+	rpc server_create(create_truncate_request) returns (d_response) {}
 
+	rpc server_truncate(create_truncate_request) returns (d_response) {}
+	
+	rpc server_unlink(unlink_request) returns (c_response) {}
+
+	rpc server_read(read_request) returns (read_response) {}
+	
 	rpc read_directory(readdir_request) returns (readdir_response) {}
 
 	// rpc read(read_request) returns (read_response) {}
@@ -85,12 +91,12 @@ message rename_request {
 }
 
 message open_request {
-	string path = 1;
+	string fh = 1;
 	proto_file_info pfi = 2;
 }
 
-message create_request {
-	string path = 1;
+message create_truncate_request {
+	string fh = 1;
 	attributes attr = 2;
 	proto_file_info pfi = 3;
 }
@@ -101,6 +107,26 @@ message d_response {
 	proto_file_info pfi = 3;
 }
 
+message unlink_request {
+	string fh = 1;
+}
+
+message read_request {
+	int32 size  = 1;
+	int32 offset = 2;
+	string path = 3;
+	proto_file_info fi = 4;
+}
+
+message read_response {
+	bytes data = 1;
+	int32 status = 2;
+	proto_file_info fileInfo = 3;
+	int32 size = 4;
+}
+
+
+
 message read_directory_single_object {
 	string name = 1;
 	attributes attr = 2;
@@ -108,7 +134,7 @@ message read_directory_single_object {
 
 message readdir_request {
 	string path = 1;
-	f_info fi = 2;
+	proto_file_info fi = 2;
 }
 
 message readdir_response {
