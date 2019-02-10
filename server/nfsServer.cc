@@ -86,17 +86,19 @@ Status serverImplementation::server_open(ServerContext *context, const open_requ
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
-	
+
 	struct fuse_file_info fi;
 	toFuseFileInfo(request->pfi(), &fi);
 
 	int fh = open(filepathChars, fi.flags);
 
-	if(fh == -1) {
+	if (fh == -1)
+	{
 		response->set_success(-1);
 		response->set_ern(errno);
 	}
-	else {
+	else
+	{
 		response->set_success(0);
 		response->set_ern(errno);
 	}
@@ -113,27 +115,27 @@ Status serverImplementation::server_create(ServerContext *context, const create_
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
-		
+
 	struct fuse_file_info fi;
 	toFuseFileInfo(request->pfi(), &fi);
-	
+
 	int fh = open(filepathChars, fi.flags, mode);
 
-	if(fh == -1) {
+	if (fh == -1)
+	{
 		response->set_success(-1);
 		response->set_ern(errno);
 	}
-	else {
+	else
+	{
 		response->set_success(0);
 		response->set_ern(errno);
-
 	}
 	fi.fh = fh;
 	response->mutable_pfi()->CopyFrom(toProtoFileInfo(&fi));
 
 	return Status::OK;
 }
-
 
 Status serverImplementation::read_directory(ServerContext *context, const readdir_request *request,
 											readdir_response *response)
@@ -181,31 +183,67 @@ Status serverImplementation::read_directory(ServerContext *context, const readdi
 	return Status::OK;
 }
 
+Status serverImplementation::get_attributes(ServerContext *context, const attribute_request_object *request,
+											attribute_response_object *response)
+{
 
+	struct stat st;
 
-Status serverImplementation::server_truncate(ServerContext *context, const create_truncate_request *request, d_response *response) {
+	toCstat(request->attr(), &st);
+	if (LOG)
+		std::cout << "------------------------------------------------\n";
+	if (LOG)
+		std::cout << "GetAttributes : path passed - " << request->path() << "\n";
+	std::string adjustedPath = this->base + request->path();
+	char *path = new char[adjustedPath.length() + 1];
+	strcpy(path, adjustedPath.c_str());
+	int res = lstat(path, &st);
+	if (res == -1)
+	{
+		if (LOG)
+			std::cout << "GetAttributes : Error getting stat -  " << errno << " Error message - " << std::strerror(errno) << "\n";
+		response->set_status(-errno);
+	}
+	else
+	{
+		response->set_status(0);
+		*response->mutable_attr() = toGstat(&st);
+	}
+
+	if (LOG)
+		std::cout << "------------------------------------------------\n\n";
+
+	return Status::OK;
+}
+
+Status serverImplementation::server_truncate(ServerContext *context, const create_truncate_request *request, d_response *response)
+{
 
 	std::string filepath = this->base + request->fh();
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
-	
+
 	struct fuse_file_info fi;
 	toFuseFileInfo(request->pfi(), &fi);
-	
+
 	int op;
-	if(fi.fh != 0) {
+	if (fi.fh != 0)
+	{
 		op = ftruncate(fi.fh, request->attr().st_size());
 	}
-	else {
+	else
+	{
 		op = truncate(filepathChars, request->attr().st_size());
 	}
 
-	if (op == -1) {
+	if (op == -1)
+	{
 		response->set_success(-1);
 		response->set_ern(errno);
 	}
-	else {
+	else
+	{
 		response->set_success(0);
 		response->set_ern(0);
 		response->mutable_pfi()->CopyFrom(toProtoFileInfo(&fi));
@@ -213,29 +251,29 @@ Status serverImplementation::server_truncate(ServerContext *context, const creat
 	return Status::OK;
 }
 
-
-Status serverImplementation::server_unlink(ServerContext *context, const unlink_request *request, c_response *response) {
+Status serverImplementation::server_unlink(ServerContext *context, const unlink_request *request, c_response *response)
+{
 
 	std::string filepath = this->base + request->fh();
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
 
-	if (unlink(filepathChars) == -1) {
+	if (unlink(filepathChars) == -1)
+	{
 		response->set_success(-1);
 		response->set_ern(errno);
 	}
-	else {
+	else
+	{
 		response->set_success(0);
 		response->set_ern(0);
 	}
-	
-	return Status::OK;
 
+	return Status::OK;
 }
 
-
-Status serverImplementation::server_read(ServerContext *context, const read_request *request, read_response *response) 
+Status serverImplementation::server_read(ServerContext *context, const read_request *request, read_response *response)
 {
 
 	std::string filepath = this->base + request->path();
@@ -243,29 +281,34 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
 
-	char* buffer = new char[request->size()];  
-	
+	char *buffer = new char[request->size()];
+
 	struct fuse_file_info fi;
 	toFuseFileInfo(request->pfi(), &fi);
 
 	int fileHandle = fi.fh;
 	int op;
-	
-	if (fi.fh == 0) {
+
+	if (fi.fh == 0)
+	{
 		fileHandle = open(filepathChars, O_RDONLY);
 		fi.fh = fileHandle;
 	}
-	if (fileHandle == -1) {
+	if (fileHandle == -1)
+	{
 		response->set_success(-1);
 		response->set_ern(errno);
-	} 
-	else {
+	}
+	else
+	{
 		op = pread(fileHandle, buffer, request->size(), request->offset());
-		if (op == -1) {
+		if (op == -1)
+		{
 			response->set_success(-1);
 			response->set_ern(errno);
 		}
-		else {
+		else
+		{
 			response->set_data(buffer);
 			response->set_size(op);
 			response->mutable_pfi()->CopyFrom(toProtoFileInfo(&fi));
@@ -274,7 +317,6 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 	delete buffer;
 	return Status::OK;
 }
-
 
 Status serverImplementation::server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response) {
 

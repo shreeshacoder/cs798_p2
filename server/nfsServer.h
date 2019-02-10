@@ -23,21 +23,23 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 
-using NfsProtocol::mkdir_request;
+using NfsProtocol::attribute_request_object;
+using NfsProtocol::attribute_response_object;
 using NfsProtocol::attributes;
-using NfsProtocol::rename_request;
-using NfsProtocol::rmdir_request;
-using NfsProtocol::open_request;
-using NfsProtocol::create_truncate_request;
-using NfsProtocol::read_request;
-using NfsProtocol::unlink_request;
 using NfsProtocol::c_response;
+using NfsProtocol::create_truncate_request;
 using NfsProtocol::d_response;
-using NfsProtocol::read_response;
+using NfsProtocol::mkdir_request;
+using NfsProtocol::NfsServer;
+using NfsProtocol::open_request;
 using NfsProtocol::read_directory_single_object;
+using NfsProtocol::read_request;
+using NfsProtocol::read_response;
 using NfsProtocol::readdir_request;
 using NfsProtocol::readdir_response;
-using NfsProtocol::NfsServer;
+using NfsProtocol::rename_request;
+using NfsProtocol::rmdir_request;
+using NfsProtocol::unlink_request;
 
 class serverImplementation final : public NfsServer::Service
 {
@@ -58,7 +60,8 @@ class serverImplementation final : public NfsServer::Service
 	Status server_read(ServerContext *context, const read_request *request, read_response *response) override;
 	Status read_directory(ServerContext *context, const readdir_request *request, readdir_response *response) override;
 	Status server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response) override;
-
+	Status get_attributes(ServerContext *context, const attribute_request_object *request,
+						  attribute_response_object *response) override;
 };
 
 #endif

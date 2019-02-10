@@ -5,11 +5,10 @@
 
 static clientImplementation nfsClient(grpc::CreateChannel("localhost:3110", grpc::InsecureChannelCredentials()));
 
-
 int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
 {
-	printf("wrapper get attr\n");
-	return 0;
+	std::string pathstr(path);
+	return nfsClient.get_attributes(pathstr, statbuf);
 }
 
 int wrapper_readlink(const char *path, char *link, size_t size)
