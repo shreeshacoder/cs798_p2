@@ -3,7 +3,7 @@
 #include "../utils/utils.h"
 #include <stdio.h>
 
-static clientImplementation nfsClient(grpc::CreateChannel("0.0.0.0:3110", grpc::InsecureChannelCredentials()));
+static clientImplementation nfsClient(grpc::CreateChannel("localhost:3110", grpc::InsecureChannelCredentials()));
 
 
 int wrapper_getattr(const char *path, struct stat *statbuf, struct fuse_file_info *fi)
@@ -33,7 +33,7 @@ int wrapper_mkdir(const char *path, mode_t mode)
 int wrapper_unlink(const char *path)
 {
 	printf("wrapper unlink\n");
-	return 0;
+	return nfsClient.client_unlink(path);
 }
 
 int wrapper_rmdir(const char *path)
@@ -81,7 +81,7 @@ int wrapper_chown(const char *path, uid_t uid, gid_t gid)
 int wrapper_truncate(const char *path, off_t newSize, struct fuse_file_info *fi)
 {
 	printf("wrapper truncate\n");
-	return 0;
+	return nfsClient.client_truncate(path, newSize, fi);
 }
 
 int wrapper_utime(const char *path, struct utimbuf *ubuf)
@@ -164,14 +164,14 @@ int wrapper_opendir(const char *path, struct fuse_file_info *fileInfo)
 
 int wrapper_readdir(const char *path, void *buf, fuse_fill_dir_t filler, off_t offset, struct fuse_file_info *fileInfo, fuse_readdir_flags rflags)
 {
-	// int responseCode;
-	// std::string pathValue(path);
-	// std::list<DirEntry> dirEntries = nfsClient.read_directory(pathValue, responseCode);
-	// for (auto const &dirEntry : dirEntries)
-	// {
-	// 	filler(buf, dirEntry.name.c_str(), &dirEntry.st, 0, FUSE_FILL_DIR_PLUS);
-	// }
-	// return responseCode;
+	int responseCode;
+	std::string pathValue(path);
+	std::list<DirEntry> dirEntries = nfsClient.read_directory(pathValue, responseCode);
+	for (auto const &dirEntry : dirEntries)
+	{
+		filler(buf, dirEntry.name.c_str(), &dirEntry.st, 0, FUSE_FILL_DIR_PLUS);
+	}
+	return responseCode;
 }
 
 int wrapper_releasedir(const char *path, struct fuse_file_info *fileInfo)

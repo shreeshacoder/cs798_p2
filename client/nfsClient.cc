@@ -185,43 +185,57 @@ int clientImplementation::client_unlink(std::string path) {
 
 std::list<DirEntry> clientImplementation::read_directory(std::string path, int &responseCode)
 {
-	// Container request
-	readdir_request readDirectoryRequestObject;
-	readDirectoryRequestObject.set_path(path);
+	readdir_request request;
+	readdir_response response;
 	ClientContext context;
+	
+	request.set_path(path);
 
-	// Container response
-	readdir_response readDirectoryResponseObject;
-
-	// Call
-	Status status = stub_->read_directory(&context, readDirectoryRequestObject, &readDirectoryResponseObject);
+	std::cout << "calling readdir: " << std::endl;
+	Status status = stub_->read_directory(&context, request, &response);
+	
 	std::list<DirEntry> entries;
 	if (status.ok())
 	{
-		responseCode = readDirectoryResponseObject.status();
-		for (int i = 0; i < readDirectoryResponseObject.objects_size(); i++)
+		responseCode = response.status();
+		for (int i = 0; i < response.objects_size(); i++)
 		{
 			DirEntry dirEntry;
-			toCstat(readDirectoryResponseObject.objects(i).attr(), &dirEntry.st);
-			dirEntry.name = readDirectoryResponseObject.objects(i).name();
+			toCstat(response.objects(i).attr(), &dirEntry.st);
+			dirEntry.name = response.objects(i).name();
 			entries.push_back(dirEntry);
 		}
 		return entries;
 	}
 	else
 	{
-		if (LOG)
-			std::cout << status.error_code() << ": " << status.error_message()
-					  << std::endl;
 		return entries;
 	}
 }
 
-// int clientImplementation::read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi) {
+int clientImplementation::read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi) {
 
+	read_request request;
+	read_response response;
+	ClientContext context;
+	
+	request.set_path(path);
+	request.set_offset(offset);
+	request.set_size(size);
+	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
 
+	std::cout << "calling readdir: " << std::endl;
+	Status status = stub_->server_read(&context, request, &response);
 
-// }
+	toFuseFileInfo(response.pfi(), fi);
+	if(status.ok()){
+		strncpy(buffer, response.data().c_str(), size);
+		return response.size();
+	}
+	else {
+		return -1;
+	}
+}
 
 
 
@@ -230,24 +244,24 @@ std::list<DirEntry> clientImplementation::read_directory(std::string path, int &
 // std::list<DirEntry> clientImplementation::read_directory(std::string path, int &responseCode)
 // {
 // 	// Container request
-// 	ReadDirectoryRequestObject readDirectoryRequestObject;
-// 	readDirectoryRequestObject.set_path(path);
+// 	request request;
+// 	request.set_path(path);
 // 	ClientContext context;
 
 // 	// Container response
-// 	ReadDirectoryResponseObject readDirectoryResponseObject;
+// 	response response;
 
 // 	// Call
-// 	Status status = stub_->read_directory(&context, readDirectoryRequestObject, &readDirectoryResponseObject);
+// 	Status status = stub_->read_directory(&context, request, &response);
 // 	std::list<DirEntry> entries;
 // 	if (status.ok())
 // 	{
-// 		responseCode = readDirectoryResponseObject.status();
-// 		for (int i = 0; i < readDirectoryResponseObject.objects_size(); i++)
+// 		responseCode = response.status();
+// 		for (int i = 0; i < response.objects_size(); i++)
 // 		{
 // 			DirEntry dirEntry;
-// 			toCstat(readDirectoryResponseObject.objects(i).st(), &dirEntry.st);
-// 			dirEntry.name = readDirectoryResponseObject.objects(i).name();
+// 			toCstat(response.objects(i).st(), &dirEntry.st);
+// 			dirEntry.name = response.objects(i).name();
 // 			entries.push_back(dirEntry);
 // 		}
 // 		return entries;

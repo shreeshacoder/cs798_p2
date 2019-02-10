@@ -221,65 +221,59 @@ Status serverImplementation::server_unlink(ServerContext *context, const unlink_
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
 
-    if (unlink(filepathChars) == -1) {
-    	response->set_success(-1);
-    	response->set_ern(errno);
-    }
-    else {
-    	response->set_success(0);
-    	response->set_ern(0);
-    }
-    
-    return Status::OK;
+	if (unlink(filepathChars) == -1) {
+		response->set_success(-1);
+		response->set_ern(errno);
+	}
+	else {
+		response->set_success(0);
+		response->set_ern(0);
+	}
+	
+	return Status::OK;
 
 }
 
 
-// Status serverImplementation::server_read(ServerContext *context, const read_request *request, read_response *response) {
+Status serverImplementation::server_read(ServerContext *context, const read_request *request, read_response *response) 
+{
 
+	std::string filepath = this->base + request->path();
+	char *filepathChars;
+	filepathChars = (char *)malloc(filepath.length() + 1);
+	strcpy(filepathChars, filepath.c_str());
 
-//       if(LOG) std::cout <<"------------------------------------------------\n";
+	char* buffer = new char[request->size()];  
+	
+	struct fuse_file_info fi;
+	toFuseFileInfo(request->pfi(), &fi);
 
-//       if(LOG) std::cout << "Read : path passed - " << request->path() <<"\n";
-
-//       int fileDir;
-//       int res;
-//       char* buffer = new char[request->size()];  
-//     std::string adjustedPath = mountpoint + request->path();
-//     char *path =new char[adjustedPath.length()+1];
-//     strcpy(path, adjustedPath.c_str());
-//       struct fuse_file_info fi;
-//       toCFileInfo(request->fileinfo(), &fi);
-    
-//       fileDir = fi.fh;
-//       if(LOG) std::cout << "Read: File directory using FH - " << fileDir <<"\n";
-//       if (fileDir == 0) {
-//         fileDir = open(path, O_RDONLY);
-//         fi.fh = fileDir;
-//         if(LOG) std::cout << "Read: File directory using open - " << fileDir <<"\n";
-//       }
-
-//       if(LOG) std::cout << "Read: got the file directory - " << fileDir <<"\n";
-
-//       if (fileDir == -1) {
-//         if(LOG) std::cout << "Read: Error occured with file directory - " << errno <<"\n";
-//         response->set_status(-errno);
-//       } else {
-//         res = pread(fileDir, buffer, request->size(), request->offset());
-//         if (res == -1) {
-//           if(LOG) std::cout << "Read: Error occured with writing to file- " << errno << " Error message - " << std::strerror(errno) <<"\n";
-//           response->set_status(-errno);
-//         }
-//       }
-//       response->set_data(buffer);
-//       response->set_size(res);
-//       *response->mutable_fileinfo() = toGFileInfo(&fi);
-//       delete[] buffer;
-//       if(LOG) std::cout <<"------------------------------------------------\n\n";
-//       // close(fileDir);
-//       return Status::OK;
-
-//   }
+	int fileHandle = fi.fh;
+	int op;
+	
+	if (fi.fh == 0) {
+		fileHandle = open(filepathChars, O_RDONLY);
+		fi.fh = fileHandle;
+	}
+	if (fileHandle == -1) {
+		response->set_success(-1);
+		response->set_ern(errno);
+	} 
+	else {
+		op = pread(fileHandle, buffer, request->size(), request->offset());
+		if (op == -1) {
+			response->set_success(-1);
+			response->set_ern(errno);
+		}
+		else {
+			response->set_data(buffer);
+			response->set_size(op);
+			response->mutable_pfi()->CopyFrom(toProtoFileInfo(&fi));
+		}
+	}
+	delete buffer;
+	return Status::OK;
+}
 
 
 
