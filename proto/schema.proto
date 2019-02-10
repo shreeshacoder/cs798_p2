@@ -25,7 +25,7 @@ service NfsServer {
 	
 	rpc read_directory(readdir_request) returns (readdir_response) {}
 
-	// rpc read(read_request) returns (read_response) {}
+	rpc server_mknod(read_directory_single_object) returns (c_response) {}
 
 	// rpc write(write_request) returns (write_response) {}
 
@@ -33,15 +33,9 @@ service NfsServer {
 
 	// rpc getattr(getattr_request) returns (getattr_response) {}
 	
-	// rpc makenode(makenode_request) returns (makenode_response) {}
-
-	// rpc truncate(truncate_request) returns (truncate_response) {}
-
 	// rpc release(release_request) returns (release_response) {}
 	
 	// rpc fsync(fsync_request) returns (fsyn_response) {}  
-
-	// rpc unlink(unlink_request) returns (unlin_response) {}
 
 	// rpc flush(flush_request) returns (flush_response) {}
 	
@@ -126,7 +120,6 @@ message read_response {
 	int32 size = 4;
 }
 
-
 message read_directory_single_object {
 	string name = 1;
 	attributes attr = 2;
@@ -141,6 +134,4 @@ message readdir_response {
 	repeated read_directory_single_object objects = 1;
 	int32 status = 2;
 }
-
-
 

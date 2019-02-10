@@ -56,8 +56,8 @@ class serverImplementation final : public NfsServer::Service
 	Status server_truncate(ServerContext *context, const create_truncate_request *request, d_response *response) override;
 	Status server_unlink(ServerContext *context, const unlink_request *request, c_response *response) override;
 	Status server_read(ServerContext *context, const read_request *request, read_response *response) override;
-	Status read_directory(ServerContext *context, const readdir_request *request,
-						  readdir_response *response) override;
+	Status read_directory(ServerContext *context, const readdir_request *request, readdir_response *response) override;
+	Status server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response) override;
 
 };
 

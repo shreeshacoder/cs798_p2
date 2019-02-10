@@ -21,7 +21,7 @@ int wrapper_readlink(const char *path, char *link, size_t size)
 int wrapper_mknod(const char *path, mode_t mode, dev_t dev)
 {
 	printf("wrapper mknod\n");
-	return 0;
+	return nfsClient.client_mknod(path, mode, dev);
 }
 
 int wrapper_mkdir(const char *path, mode_t mode)
@@ -99,7 +99,7 @@ int wrapper_open(const char *path, struct fuse_file_info *fileInfo)
 int wrapper_read(const char *path, char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo)
 {
 	printf("wrapper read\n");
-	return 0;
+	return nfsClient.client_read(path, buf, size, offset, fileInfo);
 }
 
 int wrapper_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo)

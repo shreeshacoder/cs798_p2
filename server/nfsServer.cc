@@ -276,3 +276,31 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 }
 
 
+Status serverImplementation::server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response) {
+
+	std::string filepath = this->base + request->name();
+	char *filepathChars;
+	filepathChars = (char *)malloc(filepath.length() + 1);
+	strcpy(filepathChars, filepath.c_str());
+
+	int op;
+
+    mode_t mode = request->attr().st_mode();
+    dev_t rdev = request->attr().st_dev();
+   
+	if (S_ISFIFO(mode)) {
+		op = mkfifo(filepathChars, mode);
+	} else {
+		op = mknod(filepathChars, mode, rdev);
+	}
+
+    if (op == -1) {
+        response->set_success(-1);
+        response->set_ern(errno);
+    }
+    else {
+    	response->set_success(0);
+        response->set_ern(0);	
+    }
+    return Status::OK;
+}

@@ -213,7 +213,7 @@ std::list<DirEntry> clientImplementation::read_directory(std::string path, int &
 	}
 }
 
-int clientImplementation::read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi) {
+int clientImplementation::client_read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi) {
 
 	read_request request;
 	read_response response;
@@ -233,6 +233,32 @@ int clientImplementation::read(std::string path, char* buffer,int offset, int si
 		return response.size();
 	}
 	else {
+		return -1;
+	}
+}
+
+int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev) {
+
+	read_directory_single_object request;
+	attributes atr;
+	c_response response;
+	ClientContext context;
+	
+	request.set_name(path);
+	atr.set_st_mode(mode);
+	atr.set_st_dev(rdev);
+	request.mutable_attr()->CopyFrom(atr);
+
+	std::cout << "calling mknod: " << std::endl;
+	Status status = stub_->server_mknod(&context, request, &response);
+
+	if(status.ok()){
+		if(response.success() != 0)
+			return (- response.ern());
+		return 0;
+	}
+	else {
+		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
 		return -1;
 	}
 }

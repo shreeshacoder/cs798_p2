@@ -86,13 +86,13 @@ class clientImplementation
 	int client_create(std::string path, mode_t mode, struct fuse_file_info *fi);
 	int client_truncate(std::string path, off_t size, struct fuse_file_info *fi);
 	int client_unlink(std::string path);
-	int read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi);
+	int client_read(std::string path, char* buffer,int offset, int size, struct fuse_file_info *fi);
+	int client_mknod(std::string path, mode_t mode, dev_t rdev);
 	
 	std::list<DirEntry> read_directory(std::string path, int &responseCode);
 
 	// int getAttributes(std::string path, struct stat *st);
 	// std::list<DirEntry> readDirectory(std::string path, int &responseCode);
-	// int makeNode(std::string path, mode_t mode, dev_t rdev);
 	// int release(std::string path, struct fuse_file_info *fi);
 	// int fsync(std::string path, int isdatasync, struct fuse_file_info* fi);
 	// int write(std::string path, const char *buf, int size, int offset, struct fuse_file_info* fi);
