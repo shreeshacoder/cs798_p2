@@ -3,6 +3,8 @@
 
 #include "nfsServer.h"
 
+#define LOG true
+
 serverImplementation::serverImplementation(std::string path)
 {
 	Service();
@@ -12,7 +14,7 @@ serverImplementation::serverImplementation(std::string path)
 Status serverImplementation::server_mkdir(ServerContext *context, const mkdir_request *request, c_response *response)
 {
 
-	std::string newDir = this->base + request->dirfh() + request->name();
+	std::string newDir = this->base + request->dirfh();
 	mode_t mode = request->attr().st_mode();
 	char *newDirChars;
 	newDirChars = (char *)malloc(newDir.length() + 1);
@@ -78,13 +80,13 @@ Status serverImplementation::server_rename(ServerContext *context, const rename_
 	return Status::OK;
 }
 
-Status server_open(ServerContext *context, const open_request *request, d_response *response)
-{
-}
+// Status server_open(ServerContext *context, const open_request *request, d_response *response)
+// {
+// }
 
-Status server_create(ServerContext *context, const create_request *request, d_response *response)
-{
-}
+// Status server_create(ServerContext *context, const create_request *request, d_response *response)
+// {
+// }
 
 Status serverImplementation::read_directory(ServerContext *context, const readdir_request *request,
 											readdir_response *response)
@@ -94,9 +96,10 @@ Status serverImplementation::read_directory(ServerContext *context, const readdi
 	struct dirent *de;
 	if (LOG)
 		std::cout << "------------------------------------------------\n";
+	std::cout << "You are in read_directory method";
 	if (LOG)
 		std::cout << "ReadDirectory : path passed - " << request->path() << "\n";
-	std::string adjustedPath = mountpoint + request->path();
+	std::string adjustedPath = this->base + request->path();
 	char *path = new char[adjustedPath.length() + 1];
 	strcpy(path, adjustedPath.c_str());
 
@@ -119,7 +122,7 @@ Status serverImplementation::read_directory(ServerContext *context, const readdi
 			st.st_mode = de->d_type << 12;
 
 			rd->set_name(de->d_name);
-			*rd->mutable_st() = toGstat(&st);
+			*rd->mutable_attr() = toGstat(&st);
 		}
 		response->set_status(0);
 	}

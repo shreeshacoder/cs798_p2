@@ -108,7 +108,7 @@ message read_directory_single_object {
 
 message readdir_request {
 	string path = 1;
-	f_info fi = 2;
+	proto_file_info fi = 2;
 }
 
 message readdir_response {

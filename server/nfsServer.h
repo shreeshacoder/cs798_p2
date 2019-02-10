@@ -12,6 +12,8 @@
 
 #include "../proto/schema.grpc.pb.h"
 
+#include "../utils/utils.h"
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -20,9 +22,16 @@ using grpc::ServerReaderWriter;
 using grpc::ServerWriter;
 using grpc::Status;
 
+using NfsProtocol::attributes;
 using NfsProtocol::c_response;
+using NfsProtocol::create_request;
+using NfsProtocol::d_response;
 using NfsProtocol::mkdir_request;
 using NfsProtocol::NfsServer;
+using NfsProtocol::open_request;
+using NfsProtocol::read_directory_single_object;
+using NfsProtocol::readdir_request;
+using NfsProtocol::readdir_response;
 using NfsProtocol::rename_request;
 using NfsProtocol::rmdir_request;
 
@@ -38,8 +47,10 @@ class serverImplementation final : public NfsServer::Service
 	Status server_mkdir(ServerContext *context, const mkdir_request *request, c_response *response) override;
 	Status server_rmdir(ServerContext *context, const rmdir_request *request, c_response *response) override;
 	Status server_rename(ServerContext *context, const rename_request *request, c_response *response) override;
-	Status server_open(ServerContext *context, const open_request *request, d_response *response) override;
-	Status server_create(ServerContext *context, const create_request *request, d_response *response) override;
+	// Status server_open(ServerContext *context, const open_request *request, d_response *response) override;
+	// Status server_create(ServerContext *context, const create_request *request, d_response *response) override;
+	Status read_directory(ServerContext *context, const readdir_request *request,
+						  readdir_response *response) override;
 };
 
 #endif
