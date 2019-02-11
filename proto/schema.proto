@@ -7,6 +7,8 @@ package NfsProtocol;
 
 service NfsServer {
 
+	rpc server_lookup(lookup_request) returns (lookup_response) {}
+
 	rpc server_mkdir(mkdir_request) returns (c_response) {}
 
 	rpc server_rmdir(rmdir_request) returns (c_response) {}
@@ -15,9 +17,9 @@ service NfsServer {
 
 	rpc server_open(open_request) returns (d_response) {}
 
-	rpc server_create(create_truncate_request) returns (d_response) {}
+	rpc server_create(create_request) returns (d_response) {}
 
-	rpc server_truncate(create_truncate_request) returns (d_response) {}
+	rpc server_truncate(truncate_request) returns (d_response) {}
 	
 	rpc server_unlink(unlink_request) returns (c_response) {}
 
@@ -27,14 +29,13 @@ service NfsServer {
 
 	rpc server_mknod(read_directory_single_object) returns (c_response) {}
 
-	rpc get_attributes(attribute_request_object) returns (attribute_response_object) {}
+	rpc get_attributes(attribute_request) returns (attribute_response) {}
+	
+	rpc server_release(read_request) returns (d_response) {}
 	
 	// rpc write(write_request) returns (write_response) {}
 
-	// rpc remove(remove_request) returns (remove_response) {}
-
-	
-	// rpc release(release_request) returns (release_response) {}
+	// rpc remove(remove_request) returns (remove_response) {}	
 	
 	// rpc fsync(fsync_request) returns (fsyn_response) {}  
 
@@ -67,8 +68,9 @@ message attributes {
 }
 
 message mkdir_request {
-	string dirfh = 1;
-	attributes attr = 2;
+	int32 dirfh = 1;
+	string name = 2;
+	attributes attr = 3;
 }
 
 message c_response {
@@ -77,21 +79,29 @@ message c_response {
 }
 
 message rmdir_request {
-	string dirfh = 1;
+	int32 dirfh = 1;
 }
 
 message rename_request {
-	string todir = 1;
-	string fromdir = 2;
+	int32 todirfh = 1;
+	string name = 2;
+	int32 fromfh = 3;
 }
 
 message open_request {
-	string fh = 1;
+	int32 fh = 1;
 	proto_file_info pfi = 2;
 }
 
-message create_truncate_request {
-	string fh = 1;
+message create_request {
+	int32 dirfh = 1;
+	string name = 2;
+	attributes attr = 3;
+	proto_file_info pfi = 4;
+}
+
+message truncate_request {
+	int32 fh = 1;
 	attributes attr = 2;
 	proto_file_info pfi = 3;
 }
@@ -103,13 +113,13 @@ message d_response {
 }
 
 message unlink_request {
-	string fh = 1;
+	int32 fh = 1;
 }
 
 message read_request {
 	int32 size  = 1;
 	int32 offset = 2;
-	string path = 3;
+	int32 fh = 3;
 	proto_file_info pfi = 4;
 }
 
@@ -127,7 +137,7 @@ message read_directory_single_object {
 }
 
 message readdir_request {
-	string path = 1;
+	int32 dirfh = 1;
 	proto_file_info fi = 2;
 }
 
@@ -136,13 +146,22 @@ message readdir_response {
 	int32 status = 2;
 }
 
-message attribute_request_object {
-	string path = 1;
+message attribute_request {
+	int32 fh = 1;
 	attributes attr = 2;
 }
 
-message attribute_response_object {
+message attribute_response {
 	int32 status = 1;
 	attributes attr = 2;
+}
+
+message lookup_request {
+	int32 dirfh = 1;
+	string name = 2;
+}
+
+message lookup_response {
+	int32 fh = 1;
 }
 

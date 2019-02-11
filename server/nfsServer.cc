@@ -1,7 +1,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
+#include <experimental/filesystem>
 
 #include "nfsServer.h"
+
+using std::experimental::filesystem::path;
 
 #define LOG true
 
@@ -9,12 +12,57 @@ serverImplementation::serverImplementation(std::string path)
 {
 	Service();
 	this->base = path;
+	this->stofh[""] = 0;
+	this->fhtos[0] = "";
+	fhcount = 1;
 }
+
+void serverImplementation::print_lookup() {
+	std::cout << "---\n";
+	for (auto& e : this->stofh) {
+		std::cout << e.first << " : " << e.second << "\n";
+	}
+	std::cout << "---\n";
+}
+
+int serverImplementation::addToLookup(std::string path) {
+	if( this->stofh.find(path) == this->stofh.end() ) {
+		this->stofh[path] = this->fhcount;
+		this->fhtos[this->fhcount] = path;
+		this->fhcount++;
+		std::cout << "added " << path << " at " << (this->fhcount-1) << " in lookup \n";
+	}
+	return this->stofh[path];
+}
+
+Status serverImplementation::server_lookup(ServerContext *context, const lookup_request *request, lookup_response *response) {
+
+	std::string parent_path = this->fhtos[request->dirfh()];
+	std::string new_parent_path = parent_path + "/" + request->name();
+
+	// std::cout << "server lookup for " << new_parent_path << "\n";
+
+	if( this->stofh.find(new_parent_path) == this->stofh.end() ) {
+		this->addToLookup(new_parent_path);
+	}
+	// std::cout << "server response to lookup" << this->stofh.find(new_parent_path)->second << "\n";
+	response->set_fh(this->stofh.find(new_parent_path)->second);
+	return Status::OK;
+}
+
+std::string serverImplementation::back_lookup(int fh) {
+	
+	if( this->fhtos.find(fh) == this->fhtos.end() ) 
+		return NULL;
+	return this->fhtos[fh];
+
+}
+
 
 Status serverImplementation::server_mkdir(ServerContext *context, const mkdir_request *request, c_response *response)
 {
 
-	std::string newDir = this->base + request->dirfh();
+	std::string newDir = this->base + this->back_lookup(request->dirfh()) + "/" + request->name();
 	mode_t mode = request->attr().st_mode();
 	char *newDirChars;
 	newDirChars = (char *)malloc(newDir.length() + 1);
@@ -27,6 +75,7 @@ Status serverImplementation::server_mkdir(ServerContext *context, const mkdir_re
 	}
 	else
 	{
+		this->addToLookup(this->back_lookup(request->dirfh()) + "/" + request->name());
 		response->set_success(0);
 		response->set_ern(0);
 	}
@@ -35,8 +84,7 @@ Status serverImplementation::server_mkdir(ServerContext *context, const mkdir_re
 
 Status serverImplementation::server_rmdir(ServerContext *context, const rmdir_request *request, c_response *response)
 {
-
-	std::string dirToRemove = this->base + request->dirfh();
+	std::string dirToRemove = this->base + this->back_lookup(request->dirfh());
 	char *dirToRemoveChars;
 	dirToRemoveChars = (char *)malloc(dirToRemove.length() + 1);
 	strcpy(dirToRemoveChars, dirToRemove.c_str());
@@ -50,19 +98,22 @@ Status serverImplementation::server_rmdir(ServerContext *context, const rmdir_re
 	{
 		response->set_success(0);
 		response->set_ern(0);
+		this->stofh.erase( this->stofh.find(this->back_lookup(request->dirfh()))  );
+		this->fhtos.erase( this->fhtos.find(request->dirfh() )  );
 	}
+	this->print_lookup();
 	return Status::OK;
 }
 
 Status serverImplementation::server_rename(ServerContext *context, const rename_request *request, c_response *response)
 {
 
-	std::string toDir = this->base + request->todir();
+	std::string toDir = this->base + this->back_lookup(request->todirfh()) + "/" + request->name();
 	char *toDirChars;
 	toDirChars = (char *)malloc(toDir.length() + 1);
 	strcpy(toDirChars, toDir.c_str());
 
-	std::string fromDir = this->base + request->fromdir();
+	std::string fromDir = this->base + this->back_lookup(request->fromfh());
 	char *fromDirChars;
 	fromDirChars = (char *)malloc(fromDir.length() + 1);
 	strcpy(fromDirChars, fromDir.c_str());
@@ -74,6 +125,9 @@ Status serverImplementation::server_rename(ServerContext *context, const rename_
 	}
 	else
 	{
+		this->addToLookup(this->back_lookup(request->todirfh()) + "/" + request->name());
+		this->stofh.erase( this->stofh.find(this->back_lookup(request->fromfh()))  );
+		this->fhtos.erase( this->fhtos.find(request->fromfh() ) );
 		response->set_success(0);
 		response->set_ern(0);
 	}
@@ -82,7 +136,7 @@ Status serverImplementation::server_rename(ServerContext *context, const rename_
 
 Status serverImplementation::server_open(ServerContext *context, const open_request *request, d_response *response)
 {
-	std::string filepath = this->base + request->fh();
+	std::string filepath = this->base + this->back_lookup(request->fh());
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
@@ -108,13 +162,13 @@ Status serverImplementation::server_open(ServerContext *context, const open_requ
 	return Status::OK;
 }
 
-Status serverImplementation::server_create(ServerContext *context, const create_truncate_request *request, d_response *response)
+Status serverImplementation::server_create(ServerContext *context, const create_request *request, d_response *response)
 {
-	std::string filepath = this->base + request->fh();
-	mode_t mode = request->attr().st_mode();
+	std::string filepath = this->base +  this->back_lookup(request->dirfh() ) + "/" + request->name()   ;
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
+	mode_t mode = request->attr().st_mode();
 
 	struct fuse_file_info fi;
 	toFuseFileInfo(request->pfi(), &fi);
@@ -128,6 +182,7 @@ Status serverImplementation::server_create(ServerContext *context, const create_
 	}
 	else
 	{
+		this->addToLookup(this->back_lookup(request->dirfh()) + "/" + request->name());
 		response->set_success(0);
 		response->set_ern(errno);
 	}
@@ -137,66 +192,59 @@ Status serverImplementation::server_create(ServerContext *context, const create_
 	return Status::OK;
 }
 
-Status serverImplementation::read_directory(ServerContext *context, const readdir_request *request,
-											readdir_response *response)
+Status serverImplementation::read_directory(ServerContext *context, const readdir_request *request, readdir_response *response)
 {
 
 	DIR *dp;
 	struct dirent *de;
-	if (LOG)
-		std::cout << "------------------------------------------------\n";
-	std::cout << "You are in read_directory method";
-	if (LOG)
-		std::cout << "ReadDirectory : path passed - " << request->path() << "\n";
-	std::string adjustedPath = this->base + request->path();
+	std::string qpath;
+
+	std::string adjustedPath = this->base + this->back_lookup(request->dirfh());
 	char *path = new char[adjustedPath.length() + 1];
 	strcpy(path, adjustedPath.c_str());
+
+	std::cout << "server readdir\n";
+	// std::cout << request->path()	 << "\n";
 
 	dp = opendir(path);
 	if (dp == NULL)
 	{
-		if (LOG)
-			std::cout << "ReadDirectory : Error getting directory path -  " << errno << "\n";
 		response->set_status(-errno);
 	}
 	else
 	{
-		while ((de = readdir(dp)) != NULL)
-		{
+		while ((de = readdir(dp)) != NULL) {
+
 			struct stat st;
 			read_directory_single_object *rd = response->add_objects();
-
-			// memset(&st, 0, sizeof(st));
 			st.st_ino = de->d_ino;
 			st.st_mode = de->d_type << 12;
-
 			rd->set_name(de->d_name);
 			*rd->mutable_attr() = toGstat(&st);
+
+			if(this->back_lookup(request->dirfh())[this->back_lookup(request->dirfh()).length()-1] == '/')
+				qpath = this->back_lookup(request->dirfh()) + rd->name();
+			else
+				qpath = this->back_lookup(request->dirfh()) + "/" + rd->name();
+
+			this->addToLookup(qpath);
+		
 		}
 		response->set_status(0);
 	}
-
-	if (LOG)
-		std::cout << "------------------------------------------------\n\n";
 
 	closedir(dp);
 	return Status::OK;
 }
 
-Status serverImplementation::get_attributes(ServerContext *context, const attribute_request_object *request,
-											attribute_response_object *response)
+Status serverImplementation::get_attributes(ServerContext *context, const attribute_request *request, attribute_response *response)
 {
+	std::cout << "server getattr\n";
 
 	struct stat st;
 
 	toCstat(request->attr(), &st);
-	// if (LOG)
-	// 	std::cout << "------------------------------------------------\n";
-	// if (LOG)
-	// 	std::cout << "GetAttributes : path passed - " << request->path() << "\n";
-	std::string adjustedPath = this->base + request->path();
-
-	// std::cout << adjustedPath << "\n";
+	std::string adjustedPath = this->base + this->back_lookup(request->fh());
 
 	char *path = new char[adjustedPath.length() + 1];
 	strcpy(path, adjustedPath.c_str());
@@ -219,10 +267,10 @@ Status serverImplementation::get_attributes(ServerContext *context, const attrib
 	return Status::OK;
 }
 
-Status serverImplementation::server_truncate(ServerContext *context, const create_truncate_request *request, d_response *response)
+Status serverImplementation::server_truncate(ServerContext *context, const truncate_request *request, d_response *response)
 {
 
-	std::string filepath = this->base + request->fh();
+	std::string filepath = this->base + this->back_lookup(request->fh());
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
@@ -257,7 +305,7 @@ Status serverImplementation::server_truncate(ServerContext *context, const creat
 Status serverImplementation::server_unlink(ServerContext *context, const unlink_request *request, c_response *response)
 {
 
-	std::string filepath = this->base + request->fh();
+	std::string filepath = this->base + this->back_lookup(request->fh());
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
@@ -279,7 +327,7 @@ Status serverImplementation::server_unlink(ServerContext *context, const unlink_
 Status serverImplementation::server_read(ServerContext *context, const read_request *request, read_response *response)
 {
 
-	std::string filepath = this->base + request->path();
+	std::string filepath = this->base + this->back_lookup(request->fh());
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
 	strcpy(filepathChars, filepath.c_str());
@@ -291,8 +339,6 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 
 	int fileHandle = fi.fh;
 	int op;
-
-	std::cout << "in read " << filepathChars << request->offset() << request->size() << "\n";
 
 	if (fi.fh == 0)
 	{
@@ -333,8 +379,8 @@ Status serverImplementation::server_mknod(ServerContext *context, const read_dir
 
 	int op;
 
-    mode_t mode = request->attr().st_mode();
-    dev_t rdev = request->attr().st_dev();
+	mode_t mode = request->attr().st_mode();
+	dev_t rdev = request->attr().st_dev();
    
 	if (S_ISFIFO(mode)) {
 		op = mkfifo(filepathChars, mode);
@@ -342,13 +388,32 @@ Status serverImplementation::server_mknod(ServerContext *context, const read_dir
 		op = mknod(filepathChars, mode, rdev);
 	}
 
-    if (op == -1) {
-        response->set_success(-1);
-        response->set_ern(errno);
-    }
-    else {
-    	response->set_success(0);
-        response->set_ern(0);	
-    }
-    return Status::OK;
+	if (op == -1) {
+		response->set_success(-1);
+		response->set_ern(errno);
+	}
+	else {
+		response->set_success(0);
+		response->set_ern(0);	
+	}
+	return Status::OK;
+}
+
+Status serverImplementation::server_release(ServerContext *context, const read_request *request, d_response *response) {
+
+	std::string filepath = this->base + this->back_lookup(request->fh());
+	char *filepathChars;
+	filepathChars = (char *)malloc(filepath.length() + 1);
+	strcpy(filepathChars, filepath.c_str());
+
+	struct fuse_file_info fi;
+	toFuseFileInfo(request->pfi(), &fi);
+
+	(void) filepathChars;
+	close(fi.fh);
+
+	response->set_success(0);
+	response->set_ern(0);
+	response->mutable_pfi()->CopyFrom(toProtoFileInfo(&fi));
+	return Status::OK;
 }
