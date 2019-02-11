@@ -307,7 +307,7 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 	else
 	{
 		op = pread(fileHandle, buffer, request->size(), request->offset());
-		std::cout << "size: " << request->size() << ", "<<  buffer << "\n";
+		std::cout << "size: " << request->size() << ", " << buffer << "\n";
 		if (op == -1)
 		{
 			response->set_success(-1);
@@ -324,7 +324,8 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 	return Status::OK;
 }
 
-Status serverImplementation::server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response) {
+Status serverImplementation::server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response)
+{
 
 	std::string filepath = this->base + request->name();
 	char *filepathChars;
@@ -333,22 +334,94 @@ Status serverImplementation::server_mknod(ServerContext *context, const read_dir
 
 	int op;
 
-    mode_t mode = request->attr().st_mode();
-    dev_t rdev = request->attr().st_dev();
-   
-	if (S_ISFIFO(mode)) {
+	mode_t mode = request->attr().st_mode();
+	dev_t rdev = request->attr().st_dev();
+
+	if (S_ISFIFO(mode))
+	{
 		op = mkfifo(filepathChars, mode);
-	} else {
+	}
+	else
+	{
 		op = mknod(filepathChars, mode, rdev);
 	}
 
-    if (op == -1) {
-        response->set_success(-1);
-        response->set_ern(errno);
-    }
-    else {
-    	response->set_success(0);
-        response->set_ern(0);	
-    }
-    return Status::OK;
+	if (op == -1)
+	{
+		response->set_success(-1);
+		response->set_ern(errno);
+	}
+	else
+	{
+		response->set_success(0);
+		response->set_ern(0);
+	}
+	return Status::OK;
+}
+
+Status serverImplementation::write(ServerContext *context, const write_request_object *request,
+								   write_response_object *response)
+{
+
+	if (LOG)
+		std::cout << "------------------------------------------------\n";
+	if (LOG)
+		std::cout << "Write : path passed - " << request->path() << "\n";
+	int fileDir;
+	//char *buffer = new char[request->data().length() + 1];
+	std::string adjustedPath = this->base + request->path();
+	char *path = new char[adjustedPath.length() + 1];
+	strcpy(path, adjustedPath.c_str());
+
+	std::string buffer = request->data();
+	struct fuse_file_info fi;
+	toCFileInfo(request->fileinfo(), &fi);
+	if (LOG)
+		std::cout << "Write: got all the inputs sorted. File header - " << fi.fh << "\n";
+
+	//(void) fi;
+	if (fi.fh == 0)
+	{
+		fileDir = open(path, O_WRONLY);
+	}
+	else
+	{
+		fileDir = fi.fh;
+	}
+
+	if (LOG)
+		std::cout << "Write: got the file directory - " << fileDir << "\n";
+	int res;
+
+	if (fileDir == -1)
+	{
+		if (LOG)
+			std::cout << "Write: Error occured with file directory - " << errno << "\n";
+		response->set_status(-errno);
+	}
+	else
+	{
+		res = pwrite(fileDir, &buffer[0], request->size(), request->offset());
+
+		if (res == -1)
+		{
+			if (LOG)
+				std::cout << "Write: Error occured with writing to file- " << errno << " Error message - " << std::strerror(errno) << "\n";
+			response->set_status(-errno);
+		}
+
+		if (request->flag())
+		{
+			// fsync(fi.fh);
+			close(dup(fi.fh));
+		}
+	}
+	if (LOG)
+		std::cout << "------------------------------------------------\n\n";
+
+	//close(fileDir);
+	response->set_status(0);
+	response->set_datasize(res);
+	*response->mutable_fileinfo() = toGFileInfo(&fi);
+	return Status::OK;
 }

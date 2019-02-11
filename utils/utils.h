@@ -27,5 +27,7 @@ attributes toGstat(struct stat *st);
 
 void toCstat(attributes gstat, struct stat *st);
 
+void toCFileInfo(proto_file_info fuseFileInfo, struct fuse_file_info *fi);
 
+proto_file_info toGFileInfo(struct fuse_file_info *fi);
 #endif

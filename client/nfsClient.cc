@@ -5,6 +5,10 @@
 clientImplementation::clientImplementation(std::shared_ptr<Channel> channel)
 	: stub_(NfsServer::NewStub(channel)) {}
 
+static std::map<int, Datastore> mainDataStore;
+
+static int buffer_size = 65536;
+
 int clientImplementation::client_mkdir(std::string path, mode_t mode)
 {
 
@@ -222,7 +226,6 @@ std::list<DirEntry> clientImplementation::read_directory(std::string path, int &
 	}
 }
 
-
 int clientImplementation::get_attributes(std::string path, struct stat *st)
 {
 
@@ -267,8 +270,7 @@ int clientImplementation::get_attributes(std::string path, struct stat *st)
 	}
 }
 
-
-int clientImplementation::client_read(std::string path, char* buffer,int size, int offset, struct fuse_file_info *fi) 
+int clientImplementation::client_read(std::string path, char *buffer, int size, int offset, struct fuse_file_info *fi)
 {
 	read_request request;
 	read_response response;
@@ -285,7 +287,7 @@ int clientImplementation::client_read(std::string path, char* buffer,int size, i
 	Status status = stub_->server_read(&context, request, &response);
 
 	toFuseFileInfo(response.pfi(), fi);
-	if (status.ok() )
+	if (status.ok())
 	{
 		strncpy(buffer, response.data().c_str(), size);
 		return response.size();
@@ -296,14 +298,14 @@ int clientImplementation::client_read(std::string path, char* buffer,int size, i
 	}
 }
 
-
-int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev) {
+int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev)
+{
 
 	read_directory_single_object request;
 	attributes atr;
 	c_response response;
 	ClientContext context;
-	
+
 	request.set_name(path);
 	atr.set_st_mode(mode);
 	atr.set_st_dev(rdev);
@@ -312,14 +314,119 @@ int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev
 	std::cout << "calling mknod: " << std::endl;
 	Status status = stub_->server_mknod(&context, request, &response);
 
-	if(status.ok()){
-		if(response.success() != 0)
-			return (- response.ern());
+	if (status.ok())
+	{
+		if (response.success() != 0)
+			return (-response.ern());
 		return 0;
 	}
-	else {
+	else
+	{
 		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
 		return -1;
 	}
 }
 
+int clientImplementation::write(std::string path, const char *buf, int size, int offset, struct fuse_file_info *fi)
+{
+
+	write_request_object writeRequestObject;
+
+	bool commitFlag = false;
+	bool sendAll = false;
+	Datastore sendAllDataStore;
+	if (fi->fh != 0)
+	{
+		if (mainDataStore.find(fi->fh) != mainDataStore.end())
+		{
+			Datastore ds = mainDataStore.find(fi->fh)->second;
+
+			if (ds.getIsDirty())
+			{
+				sendAll = true;
+				commitFlag = true;
+				sendAllDataStore = ds;
+			}
+
+			if (ds.getData().length() > buffer_size)
+			{
+				commitFlag = true;
+			}
+		}
+	}
+
+	writeRequestObject.set_flag(commitFlag);
+	writeRequestObject.set_path(path);
+	if (sendAll == false)
+	{
+		writeRequestObject.set_data(buf);
+		writeRequestObject.set_offset(offset);
+		writeRequestObject.set_size(size);
+	}
+	else
+	{
+		std::string temp(buf);
+		std::string allDataToBeSent = sendAllDataStore.getData() + temp;
+		char *newBuf = new char[allDataToBeSent.length() + 1];
+		strncpy(newBuf, allDataToBeSent.c_str(), allDataToBeSent.length());
+		writeRequestObject.set_data(newBuf);
+		writeRequestObject.set_offset(sendAllDataStore.getOriginalOffset());
+		writeRequestObject.set_size(allDataToBeSent.length());
+	}
+	*writeRequestObject.mutable_fileinfo() = toGFileInfo(fi);
+
+	ClientContext context;
+
+	// Container response
+	write_response_object writeResponseObject;
+
+	// Call
+	Status status = stub_->write(&context, writeRequestObject, &writeResponseObject);
+
+	if (status.ok())
+	{
+		toCFileInfo(writeResponseObject.fileinfo(), fi);
+		if (commitFlag)
+		{
+			if (mainDataStore.find(fi->fh) != mainDataStore.end())
+			{
+				Datastore ds = mainDataStore.find(fi->fh)->second;
+				ds.setValues("", 0, false);
+				mainDataStore.find(fi->fh)->second = ds;
+			}
+		}
+		else
+		{
+			std::string temp2(buf);
+			if (mainDataStore.find(fi->fh) != mainDataStore.end())
+			{
+				Datastore ds = mainDataStore.find(fi->fh)->second;
+				ds.setValues((ds.getData() + temp2), ds.getOriginalOffset());
+				mainDataStore.find(fi->fh)->second = ds;
+			}
+			else
+			{
+				mainDataStore.insert(std::make_pair<int, Datastore>(fi->fh, Datastore(temp2, offset, false)));
+			}
+		}
+		return writeResponseObject.datasize();
+	}
+	else
+	{
+		if (mainDataStore.find(fi->fh) != mainDataStore.end())
+		{
+			std::string temp2(buf);
+			Datastore ds = mainDataStore.find(fi->fh)->second;
+			ds.setValues((ds.getData() + temp2), ds.getOriginalOffset());
+			ds.setDirty();
+			mainDataStore.find(fi->fh)->second = ds;
+			return size;
+		}
+		else
+		{
+			return -1;
+		}
+	}
+	if (LOG)
+		std::cout << "------------------------------------------------\n\n";
+}

@@ -40,6 +40,8 @@ using NfsProtocol::readdir_response;
 using NfsProtocol::rename_request;
 using NfsProtocol::rmdir_request;
 using NfsProtocol::unlink_request;
+using NfsProtocol::write_request_object;
+using NfsProtocol::write_response_object;
 
 class serverImplementation final : public NfsServer::Service
 {
@@ -62,6 +64,8 @@ class serverImplementation final : public NfsServer::Service
 	Status server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response) override;
 	Status get_attributes(ServerContext *context, const attribute_request_object *request,
 						  attribute_response_object *response) override;
+	Status write(ServerContext *context, const write_request_object *request,
+				 write_response_object *response);
 };
 
 #endif

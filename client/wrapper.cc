@@ -104,7 +104,8 @@ int wrapper_read(const char *path, char *buf, size_t size, off_t offset, struct 
 int wrapper_write(const char *path, const char *buf, size_t size, off_t offset, struct fuse_file_info *fileInfo)
 {
 	printf("wrapper write\n");
-	return 0;
+	std::string pathstr(path);
+	return nfsClient.write(pathstr, buf, size, offset, fileInfo);
 }
 
 int wrapper_statfs(const char *path, struct statvfs *statInfo)

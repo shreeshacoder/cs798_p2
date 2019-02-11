@@ -8,9 +8,6 @@ std::string toStr(const char *path)
 	return a;
 }
 
-
-
-
 proto_file_info toProtoFileInfo(struct fuse_file_info *fi)
 {
 	proto_file_info pfi;
@@ -62,4 +59,17 @@ void toCstat(attributes gstat, struct stat *st)
 	st->st_blksize = gstat.st_blksize();
 	st->st_blocks = gstat.st_blocks();
 	// st->st_attr = gstat.st_attr();
+}
+
+void toCFileInfo(proto_file_info fuseFileInfo, struct fuse_file_info *fi)
+{
+	fi->fh = fuseFileInfo.fh();
+	fi->flags = fuseFileInfo.flags();
+}
+
+proto_file_info toGFileInfo(struct fuse_file_info *fi){
+	proto_file_info fuseFileInfo;
+	fuseFileInfo.set_fh(fi->fh);
+	fuseFileInfo.set_flags(fi->flags);
+	return fuseFileInfo;
 }

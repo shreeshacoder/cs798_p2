@@ -32,45 +32,56 @@ using NfsProtocol::readdir_response;
 using NfsProtocol::rename_request;
 using NfsProtocol::rmdir_request;
 using NfsProtocol::unlink_request;
+using NfsProtocol::write_request_object;
+using NfsProtocol::write_response_object;
 
-// class Datastore{
+class Datastore
+{
 
-// 	std::string data;
-// 	bool isDirty;
-// 	int originalOffset;
-// public:
-// 	Datastore(void) {
-// 		data = "";
-// 		isDirty = false;
-// 		originalOffset = 0;
-// 	}
+	std::string data;
+	bool isDirty;
+	int originalOffset;
 
-// 	Datastore(std::string d, int offset, bool status) {
-// 		data = d;
-// 		isDirty = status;
-// 		originalOffset = offset;
-// 	}
+  public:
+	Datastore(void)
+	{
+		data = "";
+		isDirty = false;
+		originalOffset = 0;
+	}
 
-// 	std::string getData(void) {
-// 		return data;
-// 	}
-// 	bool getIsDirty(void) {
-// 		return isDirty;
-// 	}
+	Datastore(std::string d, int offset, bool status)
+	{
+		data = d;
+		isDirty = status;
+		originalOffset = offset;
+	}
 
-// 	void setDirty() {
-// 		isDirty = true;
-// 	}
+	std::string getData(void)
+	{
+		return data;
+	}
+	bool getIsDirty(void)
+	{
+		return isDirty;
+	}
 
-// 	int getOriginalOffset(void) {
-// 		return originalOffset;
-// 	}
-// 	void setValues(std::string d, int offset, bool status = false) {
-// 		data = d;
-// 		originalOffset = offset;
-// 		isDirty = status;
-// 	}
-// };
+	void setDirty()
+	{
+		isDirty = true;
+	}
+
+	int getOriginalOffset(void)
+	{
+		return originalOffset;
+	}
+	void setValues(std::string d, int offset, bool status = false)
+	{
+		data = d;
+		originalOffset = offset;
+		isDirty = status;
+	}
+};
 
 class clientImplementation
 {
@@ -88,10 +99,11 @@ class clientImplementation
 	int client_create(std::string path, mode_t mode, struct fuse_file_info *fi);
 	int client_truncate(std::string path, off_t size, struct fuse_file_info *fi);
 	int client_unlink(std::string path);
-	int client_read(std::string path, char* buffer,int size, int offset, struct fuse_file_info *fi);
+	int client_read(std::string path, char *buffer, int size, int offset, struct fuse_file_info *fi);
 	int client_mknod(std::string path, mode_t mode, dev_t rdev);
 	std::list<DirEntry> read_directory(std::string path, int &responseCode);
 	int get_attributes(std::string path, struct stat *st);
+	int write(std::string path, const char *buf, int size, int offset, struct fuse_file_info *fi);
 
 	// int getAttributes(std::string path, struct stat *st);
 	// std::list<DirEntry> readDirectory(std::string path, int &responseCode);
