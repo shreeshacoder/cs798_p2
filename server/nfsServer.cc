@@ -410,6 +410,8 @@ Status serverImplementation::write(ServerContext *context, const write_request_o
 			response->set_status(-errno);
 		}
 
+		// this checks if the commit flag has been set.
+		// this would contain logic to write to disk
 		if (request->flag())
 		{
 			// fsync(fi.fh);
