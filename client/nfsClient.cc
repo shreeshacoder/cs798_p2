@@ -430,3 +430,60 @@ int clientImplementation::write(std::string path, const char *buf, int size, int
 	if (LOG)
 		std::cout << "------------------------------------------------\n\n";
 }
+
+int clientImplementation::fsync(std::string path, int isdatasync, struct fuse_file_info *fi)
+{
+	fsync_request fsyncRequestObject;
+	fsyncRequestObject.set_path(path);
+	fsyncRequestObject.set_isdatasync(isdatasync);
+	*fsyncRequestObject.mutable_fileinfo() = toGFileInfo(fi);
+	ClientContext context;
+
+	// Container response
+	fsync_response fsyncResponseObject;
+
+	// Call
+	Status status = stub_->fsync(&context, fsyncRequestObject, &fsyncResponseObject);
+
+	toCFileInfo(fsyncResponseObject.fileinfo(), fi);
+
+	if (status.ok())
+	{
+		return fsyncResponseObject.status();
+	}
+	else
+	{
+		if (LOG)
+			std::cout << status.error_code() << ": " << status.error_message()
+					  << std::endl;
+		return -1;
+	}
+}
+
+int clientImplementation::flush(std::string path, struct fuse_file_info *fi)
+{
+	flush_request flushRequestObject;
+	flushRequestObject.set_path(path);
+	*flushRequestObject.mutable_fileinfo() = toGFileInfo(fi);
+	ClientContext context;
+
+	// Container response
+	flush_response flushResponseObject;
+
+	// Call
+	Status status = stub_->flush(&context, flushRequestObject, &flushResponseObject);
+
+	toCFileInfo(flushResponseObject.fileinfo(), fi);
+
+	if (status.ok())
+	{
+		return flushResponseObject.status();
+	}
+	else
+	{
+		if (LOG)
+			std::cout << status.error_code() << ": " << status.error_message()
+					  << std::endl;
+		return -1;
+	}
+}

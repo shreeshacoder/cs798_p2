@@ -29,6 +29,10 @@ using NfsProtocol::attributes;
 using NfsProtocol::c_response;
 using NfsProtocol::create_truncate_request;
 using NfsProtocol::d_response;
+using NfsProtocol::flush_request;
+using NfsProtocol::flush_response;
+using NfsProtocol::fsync_request;
+using NfsProtocol::fsync_response;
 using NfsProtocol::mkdir_request;
 using NfsProtocol::NfsServer;
 using NfsProtocol::open_request;
@@ -65,7 +69,12 @@ class serverImplementation final : public NfsServer::Service
 	Status get_attributes(ServerContext *context, const attribute_request_object *request,
 						  attribute_response_object *response) override;
 	Status write(ServerContext *context, const write_request_object *request,
-				 write_response_object *response);
+				 write_response_object *response) override;
+	Status fsync(ServerContext *context, const fsync_request *request,
+				 fsync_response *response) override;
+
+	Status flush(ServerContext *context, const flush_request *request,
+				 flush_response *response);
 };
 
 #endif

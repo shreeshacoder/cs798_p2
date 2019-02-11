@@ -427,3 +427,59 @@ Status serverImplementation::write(ServerContext *context, const write_request_o
 	*response->mutable_fileinfo() = toGFileInfo(&fi);
 	return Status::OK;
 }
+
+Status serverImplementation::fsync(ServerContext *context, const fsync_request *request,
+								   fsync_response *response)
+{
+
+	if (LOG)
+		std::cout << "------------------------------------------------\n";
+	if (LOG)
+		std::cout << "Fsync : path passed - " << request->path() << "\n";
+	std::string adjustedPath = this->base + request->path();
+	char *path = new char[adjustedPath.length() + 1];
+	strcpy(path, adjustedPath.c_str());
+	int isdatasync = request->isdatasync();
+	struct fuse_file_info fi;
+	toCFileInfo(request->fileinfo(), &fi);
+
+	(void)path;
+	(void)isdatasync;
+	(void)fi;
+	response->set_status(0);
+	*response->mutable_fileinfo() = toGFileInfo(&fi);
+	if (LOG)
+		std::cout << "------------------------------------------------\n\n";
+	return Status::OK;
+}
+
+Status serverImplementation::flush(ServerContext *context, const flush_request *request,
+								   flush_response *response)
+{
+
+	if (LOG)
+		std::cout << "------------------------------------------------\n";
+	if (LOG)
+		std::cout << "Flush : path passed - " << request->path() << "\n";
+	std::string adjustedPath = this->base + request->path();
+	char *path = new char[adjustedPath.length() + 1];
+	strcpy(path, adjustedPath.c_str());
+	struct fuse_file_info fi;
+	toCFileInfo(request->fileinfo(), &fi);
+	if (LOG)
+		std::cout << "Flush : FH received - " << fi.fh << "\n";
+
+	(void)path;
+	int res = close(dup(fi.fh));
+	response->set_status(0);
+	if (res == -1)
+	{
+		response->set_status(-errno);
+	}
+	if (LOG)
+		std::cout << "Flush : FH closed, fh - " << fi.fh << "\n";
+	*response->mutable_fileinfo() = toGFileInfo(&fi);
+	if (LOG)
+		std::cout << "------------------------------------------------\n\n";
+	return Status::OK;
+}

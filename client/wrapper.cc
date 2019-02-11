@@ -117,7 +117,8 @@ int wrapper_statfs(const char *path, struct statvfs *statInfo)
 int wrapper_flush(const char *path, struct fuse_file_info *fileInfo)
 {
 	printf("wrapper flush\n");
-	return 0;
+	std::string pathstr(path);
+	return nfsClient.flush(pathstr, fileInfo);
 }
 
 int wrapper_release(const char *path, struct fuse_file_info *fileInfo)

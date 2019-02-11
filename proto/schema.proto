@@ -31,14 +31,13 @@ service NfsServer {
 	
 	rpc write(write_request_object) returns (write_response_object) {}
 
+	rpc fsync(fsync_request) returns (fsync_response) {}  
+
+	rpc flush(flush_request) returns (flush_response) {}
+	
 	// rpc remove(remove_request) returns (remove_response) {}
 
-	
 	// rpc release(release_request) returns (release_response) {}
-	
-	// rpc fsync(fsync_request) returns (fsyn_response) {}  
-
-	// rpc flush(flush_request) returns (flush_response) {}
 	
 	// rpc utimens (utimens_request) returns (utimens_response) {}
 
@@ -159,4 +158,25 @@ message write_response_object {
 	int32 status = 1;
 	int32 dataSize = 2;
 	proto_file_info fileInfo = 3;
+}
+
+message fsync_request {
+	string path = 1;
+	int32 isDataSync = 2;
+	proto_file_info fileInfo = 3;
+}
+
+message fsync_response {
+	int32 status = 1;
+	proto_file_info fileInfo = 2;
+}
+
+message flush_request {
+	string path = 1;
+	proto_file_info fileInfo = 2;
+}
+
+message flush_response {
+	int32 status = 1;
+	proto_file_info fileInfo = 2;
 }

@@ -21,6 +21,10 @@ using NfsProtocol::attributes;
 using NfsProtocol::c_response;
 using NfsProtocol::create_truncate_request;
 using NfsProtocol::d_response;
+using NfsProtocol::flush_request;
+using NfsProtocol::flush_response;
+using NfsProtocol::fsync_request;
+using NfsProtocol::fsync_response;
 using NfsProtocol::mkdir_request;
 using NfsProtocol::NfsServer;
 using NfsProtocol::open_request;
@@ -104,13 +108,13 @@ class clientImplementation
 	std::list<DirEntry> read_directory(std::string path, int &responseCode);
 	int get_attributes(std::string path, struct stat *st);
 	int write(std::string path, const char *buf, int size, int offset, struct fuse_file_info *fi);
+	int fsync(std::string path, int isdatasync, struct fuse_file_info *fi);
+	int flush(std::string path, struct fuse_file_info *fi);
 
 	// int getAttributes(std::string path, struct stat *st);
 	// std::list<DirEntry> readDirectory(std::string path, int &responseCode);
 	// int release(std::string path, struct fuse_file_info *fi);
-	// int fsync(std::string path, int isdatasync, struct fuse_file_info* fi);
 	// int write(std::string path, const char *buf, int size, int offset, struct fuse_file_info* fi);
-	// int flush(std::string path, struct fuse_file_info *fi);
 	// int utimens(std::string path,const struct timespec *ts, struct fuse_file_info *fi);
 };
 
