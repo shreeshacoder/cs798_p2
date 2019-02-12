@@ -1,4 +1,9 @@
 
+all :
+	cd proto/ && make 
+	cd utils/ && make
+	cd server/ && make 
+	cd client/ && make 
 
 schema :
 	cd proto/ && make 
@@ -12,11 +17,6 @@ server :
 client :
 	cd client/ && make 
 
-all :
-	make schema
-	make utils
-	make server
-	make client
 
 clean :
 	cd proto/ && make clean

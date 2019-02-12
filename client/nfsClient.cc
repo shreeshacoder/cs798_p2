@@ -6,6 +6,11 @@ clientImplementation::clientImplementation(std::shared_ptr<Channel> channel)
 	: stub_(NfsServer::NewStub(channel)) {
 		this->stofh[""] = 0;
 		this->fhtos[0] = "";
+		char a[6];
+		alphanum_random(a, 6);
+		std::string tmp(a);
+		this->id = a;
+		std::cout << this->id << "\n";
 	}
 
 
@@ -39,6 +44,7 @@ int clientImplementation::lookup(std::string ref) {
 		lookup_response response;
 		ClientContext context;
 
+		request.set_cid(this->id);
 		request.set_dirfh(this->stofh[parentpathstring]);
 		std::string last;
 		for(auto& e : refpath)
@@ -70,6 +76,7 @@ int clientImplementation::get_attributes(std::string path, struct stat *st)
 	int fh = this->lookup(path);
 	request.set_fh(fh);
 	*request.mutable_attr() = toGstat(st);
+	request.set_cid(this->id);
 
 	Status status = stub_->get_attributes(&context, request, &response);
 	
@@ -93,6 +100,7 @@ std::list<DirEntry> clientImplementation::read_directory(std::string path, int &
 
 	int dirfh = this->lookup(path);
 	request.set_dirfh(dirfh);
+	request.set_cid(this->id);
 
 	std::cout << "calling readdir: " << std::endl;
 	Status status = stub_->read_directory(&context, request, &response);
@@ -139,6 +147,7 @@ int clientImplementation::client_mkdir(std::string pth, mode_t mode)
 	request.set_name(last);
 	atr.set_st_mode(mode);
 	request.mutable_attr()->CopyFrom(atr);
+	request.set_cid(this->id);
 
 	std::cout << "calling mkdir: " << std::endl;
 	Status status = stub_->server_mkdir(&context, request, &response);
@@ -165,6 +174,7 @@ int clientImplementation::client_rmdir(std::string path)
 
 	int dirfh = this->lookup(path);
 	request.set_dirfh(dirfh);
+	request.set_cid(this->id);
 
 	std::cout << "calling rmdir: " << std::endl;
 	Status status = stub_->server_rmdir(&context, request, &response);
@@ -204,6 +214,7 @@ int clientImplementation::client_rename(std::string from, std::string to)
 
 	request.set_todirfh(dirfh);
 	request.set_name(last);
+	request.set_cid(this->id);
 
 	std::cout << "calling rename: " << std::endl;
 	Status status = stub_->server_rename(&context, request, &response);
@@ -247,6 +258,7 @@ int clientImplementation::client_open(std::string path, struct fuse_file_info *f
 
 	request.set_fh(this->lookup(path));
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
+	request.set_cid(this->id);
 
 	std::cout << "calling open: " << std::endl;
 	Status status = stub_->server_open(&context, request, &response);
@@ -285,6 +297,7 @@ int clientImplementation::client_create(std::string pth, mode_t mode, struct fus
 
 	request.set_dirfh(dirfh);
 	request.set_name(last);
+	request.set_cid(this->id);
 
 	atr.set_st_mode(mode);
 	request.mutable_attr()->CopyFrom(atr);
@@ -319,6 +332,7 @@ int clientImplementation::client_truncate(std::string path, off_t size, struct f
 	atr.set_st_size(size);
 	request.mutable_attr()->CopyFrom(atr);
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
+	request.set_cid(this->id);
 
 	std::cout << "calling truncate: " << std::endl;
 	Status status = stub_->server_truncate(&context, request, &response);
@@ -345,6 +359,7 @@ int clientImplementation::client_unlink(std::string path)
 	ClientContext context;
 
 	request.set_fh( this->lookup(path) );
+	request.set_cid(this->id);
 
 	std::cout << "calling unlink: " << std::endl;
 	Status status = stub_->server_unlink(&context, request, &response);
@@ -373,6 +388,7 @@ int clientImplementation::client_read(std::string path, char* buffer,int size, i
 	request.set_offset(offset);
 	request.set_size(size);
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
+	request.set_cid(this->id);
 
 	std::cout << "calling readdir: " << std::endl;
 	Status status = stub_->server_read(&context, request, &response);
@@ -424,21 +440,28 @@ int clientImplementation::client_commit(std::string path, struct fuse_file_info 
 
 	request.set_fh( this->lookup(path));
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
+	request.set_cid(this->id);
 
 	std::cout << "calling commit: " << std::endl;
 	Status status = stub_->server_commit(&context, request, &response);
 
-	if(status.ok()) 
+	if(status.ok()) {
 		if(response.success() == 1) 
 			for(auto a = this->datastore.begin(); a != this->datastore.end();) 
-				if((*a).fh == request.fh()) 
+				if((*a).fh == request.fh()) {
 					a = this->datastore.erase(a);
-				else 
+				}
+				else {
 					a++;
-		else ;
+				} 
+		else {
+
+		}
 		return 0;
-	else 
+	} 
+	else {
 		return -1;
+	}
 
 }
 
@@ -455,9 +478,10 @@ int clientImplementation::client_release(std::string path, struct fuse_file_info
 
 	request.set_fh( this->lookup(path));
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
+	request.set_cid(this->id);
 		
 	std::cout << "calling release: " << std::endl;
-	status = stub_->server_release(&context2, request, &response);
+	Status status = stub_->server_release(&context2, request, &response);
 
 	toFuseFileInfo(response.pfi(), fi);
 
@@ -490,6 +514,7 @@ int clientImplementation::client_write(std::string path, const char *buf, int si
 	request.mutable_pfi()->CopyFrom(pfi);
 	std::string buffer(buf);
 	request.set_data(buffer);
+	request.set_cid(this->id);
 
 	SingleWrite swr;
 	swr.size = size;
@@ -516,6 +541,7 @@ int clientImplementation::fsync(std::string path, int isdatasync, struct fuse_fi
 {
 	fsync_request fsyncRequestObject;
 	fsyncRequestObject.set_path(path);
+	fsyncRequestObject.set_cid(this->id);
 	fsyncRequestObject.set_isdatasync(isdatasync);
 	*fsyncRequestObject.mutable_fileinfo() = toGFileInfo(fi);
 	ClientContext context;
@@ -546,6 +572,7 @@ int clientImplementation::flush(std::string path, struct fuse_file_info *fi)
 	flush_request flushRequestObject;
 	flushRequestObject.set_path(path);
 	*flushRequestObject.mutable_fileinfo() = toGFileInfo(fi);
+	flushRequestObject.set_cid(this->id);
 	ClientContext context;
 
 	// Container response

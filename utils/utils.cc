@@ -67,9 +67,26 @@ void toCFileInfo(proto_file_info fuseFileInfo, struct fuse_file_info *fi)
 	fi->flags = fuseFileInfo.flags();
 }
 
+
 proto_file_info toGFileInfo(struct fuse_file_info *fi){
 	proto_file_info fuseFileInfo;
 	fuseFileInfo.set_fh(fi->fh);
 	fuseFileInfo.set_flags(fi->flags);
 	return fuseFileInfo;
+}
+
+
+void alphanum_random(char *s, const int len) 
+{
+    static const char alphanum[] =
+        "0123456789"
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+
+    for (int i = 0; i < len; ++i) {
+        s[i] = alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+
+    s[len] = 0;
+
 }
