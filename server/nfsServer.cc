@@ -108,15 +108,16 @@ Status serverImplementation::server_rmdir(ServerContext *context, const rmdir_re
 	{
 		response->set_success(0);
 		response->set_ern(0);
-		this->stofh.erase( this->stofh.find(this->back_lookup(request->dirfh()))  );
-		this->fhtos.erase( this->fhtos.find(request->dirfh() )  );
+		// this->stofh.erase( this->stofh.find(this->back_lookup(request->dirfh()))  );
+		// this->fhtos.erase( this->fhtos.find(request->dirfh() )  );
 	}
 	this->print_lookup();
 	return Status::OK;
 }
 
 Status serverImplementation::server_rename(ServerContext *context, const rename_request *request, c_response *response)
-{
+{	
+	std::cout << "server rename\n";
 
 	std::string toDir = this->base + this->back_lookup(request->todirfh()) + "/" + request->name();
 	char *toDirChars;
@@ -135,9 +136,23 @@ Status serverImplementation::server_rename(ServerContext *context, const rename_
 	}
 	else
 	{
-		this->addToLookup(this->back_lookup(request->todirfh()) + "/" + request->name());
-		this->stofh.erase( this->stofh.find(this->back_lookup(request->fromfh()))  );
-		this->fhtos.erase( this->fhtos.find(request->fromfh() ) );
+		if(this->stofh.find( request->todirfh() + "/" + request->name()) != this->stofh.end()  ) {
+			//renaming to an existing file, case of overwrite
+
+			int afh = request->fromfh();
+			int bfh = this->stofh[request->todirfh() + "/" + request->name()];
+
+			this->stofh.erase( this->stofh.find(this->back_lookup(afh)));
+			this->fhtos.erase( this->fhtos.find(bfh) );
+			this->fhtos[afh] = request->todirfh() + "/" + request->name();
+			this->stofh[request->todirfh() + "/" + request->name()] = afh;
+		} 
+		else {
+			this->addToLookup(this->back_lookup(request->todirfh()) + "/" + request->name());
+			this->stofh.erase( this->stofh.find(this->back_lookup(request->fromfh()))  );
+			this->fhtos.erase( this->fhtos.find(request->fromfh() ) );
+		}
+
 		response->set_success(0);
 		response->set_ern(0);
 	}
@@ -174,6 +189,9 @@ Status serverImplementation::server_open(ServerContext *context, const open_requ
 
 Status serverImplementation::server_create(ServerContext *context, const create_request *request, d_response *response)
 {
+
+	std::cout << "server create \n";
+
 	std::string filepath = this->base +  this->back_lookup(request->dirfh() ) + "/" + request->name()   ;
 	char *filepathChars;
 	filepathChars = (char *)malloc(filepath.length() + 1);
@@ -249,7 +267,7 @@ Status serverImplementation::read_directory(ServerContext *context, const readdi
 
 Status serverImplementation::get_attributes(ServerContext *context, const attribute_request *request, attribute_response *response)
 {
-	std::cout << "server getattr\n";
+	// std::cout << "serverImplementationver getattr\n";
 
 	struct stat st;
 
@@ -314,6 +332,7 @@ Status serverImplementation::server_truncate(ServerContext *context, const trunc
 
 Status serverImplementation::server_unlink(ServerContext *context, const unlink_request *request, c_response *response)
 {
+	std::cout << "server unlink\n";
 
 	std::string filepath = this->base + this->back_lookup(request->fh());
 	char *filepathChars;
@@ -435,7 +454,7 @@ Status serverImplementation::server_release(ServerContext *context, const read_r
 
 Status serverImplementation::server_write(ServerContext *context, const write_request *request, write_response *response)
 {
-	std::cout << "server write\n";
+	std::cout << "server write " << this->back_lookup(request->fh()) <<"\n";
 
 	SingleWrite swr;
 	swr.size = request->size();
@@ -459,9 +478,12 @@ Status serverImplementation::server_write(ServerContext *context, const write_re
 
 Status serverImplementation::server_commit(ServerContext *context, const read_request *request, c_response *response) {
 
-	std::cout << "trying to commit.";
+
+	this->print_store();
 	
 	int nfsfh = request->fh();
+
+	std::cout << "trying to commit. " << nfsfh << "\n";
 
 	int fh, op;
 	std::string pth;
@@ -476,7 +498,7 @@ Status serverImplementation::server_commit(ServerContext *context, const read_re
 			}
 			// std::cout << *a.data << "\n";
 			op = pwrite(fh, (*a).data.c_str(), (*a).size, (*a).offset );
-			std::cout << "result of write, " << op << ", " << (*a).size << (*a).offset << "\n";
+			std::cout << "result of write, " << op << ", " << (*a).size << ", " << (*a).offset << "\n";
 			if(op == -1) {
 				response->set_success(0);
 				return Status::OK;
@@ -493,22 +515,19 @@ Status serverImplementation::server_commit(ServerContext *context, const read_re
 		}
 	}
 
+	this->print_store();
 	response->set_success(0);
 	return Status::OK;
 
 }
 
-Status serverImplementation::server_fsync(ServerContext *context, const fsync_request *request,
-								   fsync_response *response)
+Status serverImplementation::server_fsync(ServerContext *context, const fsync_request *request, fsync_response *response)
 {
 
-	if (LOG)
-		std::cout << "------------------------------------------------\n";
-	if (LOG)
-		std::cout << "Fsync : path passed - " << request->path() << "\n";
 	std::string adjustedPath = this->base + request->path();
 	char *path = new char[adjustedPath.length() + 1];
 	strcpy(path, adjustedPath.c_str());
+	
 	int isdatasync = request->isdatasync();
 	struct fuse_file_info fi;
 	toCFileInfo(request->fileinfo(), &fi);
@@ -518,26 +537,18 @@ Status serverImplementation::server_fsync(ServerContext *context, const fsync_re
 	(void)fi;
 	response->set_status(0);
 	*response->mutable_fileinfo() = toGFileInfo(&fi);
-	if (LOG)
-		std::cout << "------------------------------------------------\n\n";
 	return Status::OK;
 }
 
-Status serverImplementation::server_flush(ServerContext *context, const flush_request *request,
-								   flush_response *response)
+Status serverImplementation::server_flush(ServerContext *context, const flush_request *request, flush_response *response)
 {
 
-	if (LOG)
-		std::cout << "------------------------------------------------\n";
-	if (LOG)
-		std::cout << "Flush : path passed - " << request->path() << "\n";
 	std::string adjustedPath = this->base + request->path();
 	char *path = new char[adjustedPath.length() + 1];
 	strcpy(path, adjustedPath.c_str());
+
 	struct fuse_file_info fi;
 	toCFileInfo(request->fileinfo(), &fi);
-	if (LOG)
-		std::cout << "Flush : FH received - " << fi.fh << "\n";
 
 	(void)path;
 	int res = close(dup(fi.fh));
@@ -546,10 +557,8 @@ Status serverImplementation::server_flush(ServerContext *context, const flush_re
 	{
 		response->set_status(-errno);
 	}
-	if (LOG)
-		std::cout << "Flush : FH closed, fh - " << fi.fh << "\n";
+
 	*response->mutable_fileinfo() = toGFileInfo(&fi);
-	if (LOG)
-		std::cout << "------------------------------------------------\n\n";
+
 	return Status::OK;
 }

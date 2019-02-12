@@ -212,8 +212,23 @@ int clientImplementation::client_rename(std::string from, std::string to)
 	{
 		if (response.success() != 0)
 			return (-response.ern());
-		this->fhtos.erase(this->lookup(from));
-		this->stofh.erase(from);
+		
+		if(this->stofh.find( to ) != this->stofh.end()  ) {
+			//renaming to an existing file, case of overwrite
+
+			int afh = this->stofh[from];
+			int bfh = this->stofh[to];
+
+			this->stofh.erase( this->stofh.find(from) );
+			this->fhtos.erase( this->fhtos.find(bfh) );
+			this->fhtos[afh] = to;
+			this->stofh[to] = afh;
+		} 
+		else {
+			this->fhtos.erase( this->fhtos.find(this->stofh[from] ) );
+			this->stofh.erase( this->stofh.find(from)  );
+		}
+
 		return 0;
 	}
 	else
@@ -401,40 +416,46 @@ int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev
 	}
 }
 
-int clientImplementation::client_release(std::string path, struct fuse_file_info *fi) {
+int clientImplementation::client_commit(std::string path, struct fuse_file_info *fi) {
 
 	read_request request;
-	c_response cresponse;
-	ClientContext context1;
+	c_response response;
+	ClientContext context;
 
 	request.set_fh( this->lookup(path));
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
-	
-	std::cout << "calling commit: " << std::endl;
-	Status status = stub_->server_commit(&context1, request, &cresponse);
 
-	if(status.ok()) {
-		if(cresponse.success() == 1) {
-			for(auto a = this->datastore.begin(); a != this->datastore.end();) {
-				if((*a).fh == request.fh()) {
+	std::cout << "calling commit: " << std::endl;
+	Status status = stub_->server_commit(&context, request, &response);
+
+	if(status.ok()) 
+		if(response.success() == 1) 
+			for(auto a = this->datastore.begin(); a != this->datastore.end();) 
+				if((*a).fh == request.fh()) 
 					a = this->datastore.erase(a);
-				}
-				else {
+				else 
 					a++;
-				}
-			}
-		}
-		else {
-			// retry
-		}
-	}
-	else {
+		else ;
+		return 0;
+	else 
 		return -1;
-	}
-	
+
+}
+
+
+int clientImplementation::client_release(std::string path, struct fuse_file_info *fi) {
+
+	int cResult = this->client_commit(path, fi);
+	if(cResult == -1)
+		return -1;
+
+	read_request request;
 	d_response response;
 	ClientContext context2;
 
+	request.set_fh( this->lookup(path));
+	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
+		
 	std::cout << "calling release: " << std::endl;
 	status = stub_->server_release(&context2, request, &response);
 

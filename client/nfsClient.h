@@ -56,7 +56,7 @@ class clientImplementation
 	std::map<int, std::string> fhtos;
 	int lookup(std::string path);
 	std::vector<SingleWrite> datastore;
-	
+	int client_commit(std::string path, struct fuse_file_info *fi);
 
   public:
 	clientImplementation(std::shared_ptr<Channel> channel);

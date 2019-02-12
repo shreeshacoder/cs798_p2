@@ -5,7 +5,7 @@ void runServer()
 
 	std::string server_address("0.0.0.0:3110");
 
-	serverImplementation service("/home/p43gupta/acads");
+	serverImplementation service("/home/p43gupta/access-paths");
 
 	ServerBuilder builder;
 	builder.AddListeningPort(server_address, grpc::InsecureServerCredentials());

@@ -1,11 +1,22 @@
 
 
+schema :
+	cd proto/ && make 
+
+utils :
+	cd utils/ && make
+
+server :
+	cd server/ && make 
+
+client :
+	cd client/ && make 
 
 all :
-	cd proto/ && make 
-	cd utils/ && make
-	cd server/ && make 
-	cd client/ && make 
+	make schema
+	make utils
+	make server
+	make client
 
 clean :
 	cd proto/ && make clean
