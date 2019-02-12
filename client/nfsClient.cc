@@ -1,35 +1,44 @@
 #include "nfsClient.h"
+#include <chrono>
 
 #define LOG true
 
+using namespace std;
+using namespace std::chrono;
+
+int read_times[5] = {};
+
 clientImplementation::clientImplementation(std::shared_ptr<Channel> channel)
-	: stub_(NfsServer::NewStub(channel)) {
-		this->stofh[""] = 0;
-		this->fhtos[0] = "";
-	}
+	: stub_(NfsServer::NewStub(channel))
+{
+	this->stofh[""] = 0;
+	this->fhtos[0] = "";
+}
 
-
-void clientImplementation::print_store() {
+void clientImplementation::print_store()
+{
 	std::cout << "---\n";
-	for(auto& i : this->datastore) {
+	for (auto &i : this->datastore)
+	{
 		std::cout << i.fh << ", " << i.size << ", " << i.offset << "\n";
 	}
 	std::cout << "---\n";
 }
 
-
-int clientImplementation::lookup(std::string ref) {
+int clientImplementation::lookup(std::string ref)
+{
 
 	path refpath(ref);
 	std::string refpathstring = refpath.string();
-	if(refpathstring.length() == 1)
+	if (refpathstring.length() == 1)
 		refpathstring = "";
 
-	if ( this->stofh.find(refpathstring) == this->stofh.end() ) {
-		
+	if (this->stofh.find(refpathstring) == this->stofh.end())
+	{
+
 		path parentpath = refpath.parent_path();
 		std::string parentpathstring = parentpath.string();
-		if(parentpathstring.length() == 1)
+		if (parentpathstring.length() == 1)
 			parentpathstring = "";
 
 		this->lookup(parentpathstring);
@@ -41,20 +50,23 @@ int clientImplementation::lookup(std::string ref) {
 
 		request.set_dirfh(this->stofh[parentpathstring]);
 		std::string last;
-		for(auto& e : refpath)
+		for (auto &e : refpath)
 			last = e.string();
 		request.set_name(last);
-		std::cout << "calling lookup " << "\n";
+		std::cout << "calling lookup "
+				  << "\n";
 		Status status = stub_->server_lookup(&context, request, &response);
 
-		if(status.ok()) {
+		if (status.ok())
+		{
 			this->stofh[refpathstring] = response.fh();
 			this->fhtos[response.fh()] = refpathstring;
 		}
 		return this->stofh[refpathstring];
-
-	} else {
-	// if the path exists in the lookup, give the fh 
+	}
+	else
+	{
+		// if the path exists in the lookup, give the fh
 		return this->stofh[refpathstring];
 	}
 }
@@ -62,7 +74,7 @@ int clientImplementation::lookup(std::string ref) {
 int clientImplementation::get_attributes(std::string path, struct stat *st)
 {
 	std::cout << "calling getattr: " << std::endl;
-	
+
 	attribute_request request;
 	attribute_response response;
 	ClientContext context;
@@ -72,7 +84,7 @@ int clientImplementation::get_attributes(std::string path, struct stat *st)
 	*request.mutable_attr() = toGstat(st);
 
 	Status status = stub_->get_attributes(&context, request, &response);
-	
+
 	if (status.ok())
 	{
 		toCstat(response.attr(), st);
@@ -83,7 +95,6 @@ int clientImplementation::get_attributes(std::string path, struct stat *st)
 		return -1;
 	}
 }
-
 
 std::list<DirEntry> clientImplementation::read_directory(std::string path, int &responseCode)
 {
@@ -116,7 +127,6 @@ std::list<DirEntry> clientImplementation::read_directory(std::string path, int &
 	}
 }
 
-
 int clientImplementation::client_mkdir(std::string pth, mode_t mode)
 {
 
@@ -128,11 +138,11 @@ int clientImplementation::client_mkdir(std::string pth, mode_t mode)
 	path ref = pth;
 	path parent = ref.parent_path();
 	std::string parentstring = parent.string();
-	if(parentstring.length() == 1)
+	if (parentstring.length() == 1)
 		parentstring = "";
 	int dirfh = this->lookup(parentstring);
 	std::string last;
-	for(auto& e : ref)
+	for (auto &e : ref)
 		last = e.string();
 
 	request.set_dirfh(dirfh);
@@ -142,7 +152,7 @@ int clientImplementation::client_mkdir(std::string pth, mode_t mode)
 
 	std::cout << "calling mkdir: " << std::endl;
 	Status status = stub_->server_mkdir(&context, request, &response);
-	
+
 	if (status.ok())
 	{
 		if (response.success() != 0)
@@ -191,15 +201,15 @@ int clientImplementation::client_rename(std::string from, std::string to)
 	c_response response;
 	ClientContext context;
 
-	request.set_fromfh( this->lookup(from) );
+	request.set_fromfh(this->lookup(from));
 	path ref = to;
 	path parent = ref.parent_path();
 	std::string parentstring = parent.string();
-	if(parentstring.length() == 1)
+	if (parentstring.length() == 1)
 		parentstring = "";
 	int dirfh = this->lookup(parentstring);
 	std::string last;
-	for(auto& e : ref)
+	for (auto &e : ref)
 		last = e.string();
 
 	request.set_todirfh(dirfh);
@@ -212,21 +222,23 @@ int clientImplementation::client_rename(std::string from, std::string to)
 	{
 		if (response.success() != 0)
 			return (-response.ern());
-		
-		if(this->stofh.find( to ) != this->stofh.end()  ) {
+
+		if (this->stofh.find(to) != this->stofh.end())
+		{
 			//renaming to an existing file, case of overwrite
 
 			int afh = this->stofh[from];
 			int bfh = this->stofh[to];
 
-			this->stofh.erase( this->stofh.find(from) );
-			this->fhtos.erase( this->fhtos.find(bfh) );
+			this->stofh.erase(this->stofh.find(from));
+			this->fhtos.erase(this->fhtos.find(bfh));
 			this->fhtos[afh] = to;
 			this->stofh[to] = afh;
-		} 
-		else {
-			this->fhtos.erase( this->fhtos.find(this->stofh[from] ) );
-			this->stofh.erase( this->stofh.find(from)  );
+		}
+		else
+		{
+			this->fhtos.erase(this->fhtos.find(this->stofh[from]));
+			this->stofh.erase(this->stofh.find(from));
 		}
 
 		return 0;
@@ -276,11 +288,11 @@ int clientImplementation::client_create(std::string pth, mode_t mode, struct fus
 	path ref = pth;
 	path parent = ref.parent_path();
 	std::string parentstring = parent.string();
-	if(parentstring.length() == 1)
+	if (parentstring.length() == 1)
 		parentstring = "";
 	int dirfh = this->lookup(parentstring);
 	std::string last;
-	for(auto& e : ref)
+	for (auto &e : ref)
 		last = e.string();
 
 	request.set_dirfh(dirfh);
@@ -315,7 +327,7 @@ int clientImplementation::client_truncate(std::string path, off_t size, struct f
 	d_response response;
 	ClientContext context;
 
-	request.set_fh( this->lookup(path) );
+	request.set_fh(this->lookup(path));
 	atr.set_st_size(size);
 	request.mutable_attr()->CopyFrom(atr);
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
@@ -344,7 +356,7 @@ int clientImplementation::client_unlink(std::string path)
 	c_response response;
 	ClientContext context;
 
-	request.set_fh( this->lookup(path) );
+	request.set_fh(this->lookup(path));
 
 	std::cout << "calling unlink: " << std::endl;
 	Status status = stub_->server_unlink(&context, request, &response);
@@ -357,11 +369,7 @@ int clientImplementation::client_unlink(std::string path)
 	}
 }
 
-
-
-
-
-int clientImplementation::client_read(std::string path, char* buffer,int size, int offset, struct fuse_file_info *fi) 
+int clientImplementation::client_read(std::string path, char *buffer, int size, int offset, struct fuse_file_info *fi)
 {
 	read_request request;
 	read_response response;
@@ -369,16 +377,27 @@ int clientImplementation::client_read(std::string path, char* buffer,int size, i
 
 	std::cout << "reading: path, " << path << " size, " << size << " offset, " << offset << "\n";
 
-	request.set_fh( this->lookup(path));
+	request.set_fh(this->lookup(path));
 	request.set_offset(offset);
 	request.set_size(size);
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
 
 	std::cout << "calling readdir: " << std::endl;
-	Status status = stub_->server_read(&context, request, &response);
+	Status status;
+	for (int count = 0; count < 5; count++)
+	{
+		high_resolution_clock::time_point t1 = high_resolution_clock::now();
+		status = stub_->server_read(&context, request, &response);
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		auto duration = duration_cast<milliseconds>(t2 - t1).count();
+		read_times[count] = duration;
+	}
+	cout << "READ TIMES";
+	for (int i = 0; i < 5; i++)
+		cout << read_times[i];
 
 	toFuseFileInfo(response.pfi(), fi);
-	if (status.ok() )
+	if (status.ok())
 	{
 		strncpy(buffer, response.data().c_str(), size);
 		return response.size();
@@ -389,14 +408,14 @@ int clientImplementation::client_read(std::string path, char* buffer,int size, i
 	}
 }
 
-
-int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev) {
+int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev)
+{
 
 	read_directory_single_object request;
 	attributes atr;
 	c_response response;
 	ClientContext context;
-	
+
 	request.set_name(path);
 	atr.set_st_mode(mode);
 	atr.set_st_dev(rdev);
@@ -405,74 +424,77 @@ int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev
 	std::cout << "calling mknod: " << std::endl;
 	Status status = stub_->server_mknod(&context, request, &response);
 
-	if(status.ok()){
-		if(response.success() != 0)
-			return (- response.ern());
+	if (status.ok())
+	{
+		if (response.success() != 0)
+			return (-response.ern());
 		return 0;
 	}
-	else {
+	else
+	{
 		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
 		return -1;
 	}
 }
 
-int clientImplementation::client_commit(std::string path, struct fuse_file_info *fi) {
+int clientImplementation::client_commit(std::string path, struct fuse_file_info *fi)
+{
 
 	read_request request;
 	c_response response;
 	ClientContext context;
 
-	request.set_fh( this->lookup(path));
+	request.set_fh(this->lookup(path));
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
 
 	std::cout << "calling commit: " << std::endl;
 	Status status = stub_->server_commit(&context, request, &response);
 
-	if(status.ok()) 
-		if(response.success() == 1) 
-			for(auto a = this->datastore.begin(); a != this->datastore.end();) 
-				if((*a).fh == request.fh()) 
+	if (status.ok())
+		if (response.success() == 1)
+			for (auto a = this->datastore.begin(); a != this->datastore.end();)
+				if ((*a).fh == request.fh())
 					a = this->datastore.erase(a);
-				else 
+				else
 					a++;
-		else ;
-		return 0;
-	else 
-		return -1;
-
+		else
+			;
+	return 0;
+	else return -1;
 }
 
-
-int clientImplementation::client_release(std::string path, struct fuse_file_info *fi) {
+int clientImplementation::client_release(std::string path, struct fuse_file_info *fi)
+{
 
 	int cResult = this->client_commit(path, fi);
-	if(cResult == -1)
+	if (cResult == -1)
 		return -1;
 
 	read_request request;
 	d_response response;
 	ClientContext context2;
 
-	request.set_fh( this->lookup(path));
+	request.set_fh(this->lookup(path));
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
-		
+
 	std::cout << "calling release: " << std::endl;
 	status = stub_->server_release(&context2, request, &response);
 
 	toFuseFileInfo(response.pfi(), fi);
 
-	if(status.ok()){
+	if (status.ok())
+	{
 		// mainDataStore.clear();
-		if(response.success() != 0)
-			return (- response.ern());
+		if (response.success() != 0)
+			return (-response.ern());
 		return 0;
 	}
-	else {
+	else
+	{
 		std::cout << "rel " << status.error_code() << ": " << status.error_message() << std::endl;
-    	return -1;
+		return -1;
 	}
 }
-
 
 int clientImplementation::client_write(std::string path, const char *buf, int size, int offset, struct fuse_file_info *fi)
 {
@@ -480,13 +502,13 @@ int clientImplementation::client_write(std::string path, const char *buf, int si
 	write_response response;
 	ClientContext context;
 
-	std::cout << "write: " << path << " @ " << this->lookup(path) << ", " << size << ", " << offset << "\n";	
-	
+	std::cout << "write: " << path << " @ " << this->lookup(path) << ", " << size << ", " << offset << "\n";
+
 	proto_file_info pfi = toProtoFileInfo(fi);
 
 	request.set_size(size);
 	request.set_offset(offset);
-	request.set_fh( this->lookup(path) );
+	request.set_fh(this->lookup(path));
 	request.mutable_pfi()->CopyFrom(pfi);
 	std::string buffer(buf);
 	request.set_data(buffer);
@@ -502,14 +524,15 @@ int clientImplementation::client_write(std::string path, const char *buf, int si
 
 	Status status = stub_->server_write(&context, request, &response);
 
-	if(status.ok()) {
-		if(response.status() == 0){
+	if (status.ok())
+	{
+		if (response.status() == 0)
+		{
 			toFuseFileInfo(response.pfi(), fi);
 			return response.datasize();
 		}
 		return -1;
 	}
-
 }
 
 int clientImplementation::fsync(std::string path, int isdatasync, struct fuse_file_info *fi)
