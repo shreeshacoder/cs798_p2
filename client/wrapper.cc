@@ -104,22 +104,22 @@ int wrapper_write(const char *path, const char *buf, size_t size, off_t offset, 
 // 	return 0;
 // }
 
-// int wrapper_flush(const char *path, struct fuse_file_info *fileInfo)
-// {
-// 	printf("wrapper flush\n");
-// 	return 0;
-// }
+int wrapper_flush(const char *path, struct fuse_file_info *fileInfo)
+{
+	printf("wrapper flush\n");
+	std::string pathstr(path);
+	return nfsClient.flush(pathstr, fileInfo);
+}
 
 int wrapper_release(const char *path, struct fuse_file_info *fileInfo)
 {
 	return nfsClient.client_release(path, fileInfo);
 }
 
-// int wrapper_fsync(const char *path, int datasync, struct fuse_file_info *fi)
-// {
-// 	printf("wrapper fsync\n");
-// 	return 0;
-// }
+int wrapper_fsync(const char *path, int datasync, struct fuse_file_info *fi)
+{
+	return nfsClient.fsync(path, datasync, fi);
+}
 
 // int wrapper_setxattr(const char *path, const char *name, const char *value, size_t size, int flags)
 // {

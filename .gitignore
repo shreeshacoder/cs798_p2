@@ -1,2 +1,6 @@
 #ignore the following directories
 .vscode/
+
+# ignore server.cc
+
+server/server.cc

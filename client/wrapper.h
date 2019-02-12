@@ -42,6 +42,4 @@ int wrapper_rename(const char *path, const char *newpath, unsigned int flag);
 // int wrapper_releasedir(const char *path, struct fuse_file_info *fileInfo);
 // int wrapper_fsyncdir(const char *path, int datasync, struct fuse_file_info *fileInfo);
 
-
-#endif 
-
+#endif
