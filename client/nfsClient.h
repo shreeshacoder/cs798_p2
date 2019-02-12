@@ -17,6 +17,7 @@ using grpc::ClientContext;
 using grpc::Status;
 using std::experimental::filesystem::path;
 
+using NfsProtocol::proto_file_info;
 using NfsProtocol::attribute_request;
 using NfsProtocol::attribute_response;
 using NfsProtocol::attributes;
@@ -37,45 +38,10 @@ using NfsProtocol::rmdir_request;
 using NfsProtocol::unlink_request;
 using NfsProtocol::lookup_request;
 using NfsProtocol::lookup_response;
+using NfsProtocol::write_request;
+using NfsProtocol::write_response;
 
-// class Datastore{
 
-// 	std::string data;
-// 	bool isDirty;
-// 	int originalOffset;
-// public:
-// 	Datastore(void) {
-// 		data = "";
-// 		isDirty = false;
-// 		originalOffset = 0;
-// 	}
-
-// 	Datastore(std::string d, int offset, bool status) {
-// 		data = d;
-// 		isDirty = status;
-// 		originalOffset = offset;
-// 	}
-
-// 	std::string getData(void) {
-// 		return data;
-// 	}
-// 	bool getIsDirty(void) {
-// 		return isDirty;
-// 	}
-
-// 	void setDirty() {
-// 		isDirty = true;
-// 	}
-
-// 	int getOriginalOffset(void) {
-// 		return originalOffset;
-// 	}
-// 	void setValues(std::string d, int offset, bool status = false) {
-// 		data = d;
-// 		originalOffset = offset;
-// 		isDirty = status;
-// 	}
-// };
 
 class clientImplementation
 {
@@ -85,6 +51,8 @@ class clientImplementation
 	std::map<std::string, int> stofh;
 	std::map<int, std::string> fhtos;
 	int lookup(std::string path);
+	std::vector<SingleWrite> datastore;
+	
 
   public:
 	clientImplementation(std::shared_ptr<Channel> channel);
@@ -96,18 +64,15 @@ class clientImplementation
 	int client_create(std::string pth, mode_t mode, struct fuse_file_info *fi);
 	int client_truncate(std::string path, off_t size, struct fuse_file_info *fi);
 	int client_unlink(std::string path);
-	int client_read(std::string path, char* buffer,int size, int offset, struct fuse_file_info *fi);
+	int client_read(std::string path, char *buffer, int size, int offset, struct fuse_file_info *fi);
 	int client_mknod(std::string path, mode_t mode, dev_t rdev);
 	std::list<DirEntry> read_directory(std::string path, int &responseCode);
 	int get_attributes(std::string path, struct stat *st);
-	int release(std::string path, struct fuse_file_info *fi);
+	int client_release(std::string path, struct fuse_file_info *fi);
+	int client_write(std::string path, const char *buf, int size, int offset, struct fuse_file_info *fi);
 
-	// int getAttributes(std::string path, struct stat *st);
-	// std::list<DirEntry> readDirectory(std::string path, int &responseCode);
-	// int fsync(std::string path, int isdatasync, struct fuse_file_info* fi);
-	// int write(std::string path, const char *buf, int size, int offset, struct fuse_file_info* fi);
-	// int flush(std::string path, struct fuse_file_info *fi);
-	// int utimens(std::string path,const struct timespec *ts, struct fuse_file_info *fi);
+	void print_store();
+
 };
 
 #endif

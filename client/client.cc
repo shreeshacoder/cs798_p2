@@ -19,10 +19,10 @@ int main(int argc, char ** argv) {
 	nfsOps.create = &wrapper_create;
 	nfsOps.open = &wrapper_open;
 	nfsOps.release = &wrapper_release;
-	nfsOps.fsync = &wrapper_fsync;
+	// nfsOps.fsync = &wrapper_fsync;
 	nfsOps.unlink = &wrapper_unlink;
 	nfsOps.write = &wrapper_write;
-	nfsOps.flush = &wrapper_flush;
+	// nfsOps.flush = &wrapper_flush;
 
 	return fuse_main(argc, argv, &nfsOps, NULL);
 	

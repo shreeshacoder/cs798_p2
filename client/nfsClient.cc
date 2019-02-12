@@ -1,11 +1,21 @@
 #include "nfsClient.h"
 
 
+
 clientImplementation::clientImplementation(std::shared_ptr<Channel> channel)
 	: stub_(NfsServer::NewStub(channel)) {
 		this->stofh[""] = 0;
 		this->fhtos[0] = "";
 	}
+
+
+void clientImplementation::print_store() {
+	std::cout << "---\n";
+	for(auto& i : this->datastore) {
+		std::cout << i.fh << ", " << i.size << ", " << i.offset << "\n";
+	}
+	std::cout << "---\n";
+}
 
 
 int clientImplementation::lookup(std::string ref) {
@@ -202,6 +212,8 @@ int clientImplementation::client_rename(std::string from, std::string to)
 	{
 		if (response.success() != 0)
 			return (-response.ern());
+		this->fhtos.erase(this->lookup(from));
+		this->stofh.erase(from);
 		return 0;
 	}
 	else
@@ -389,17 +401,42 @@ int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev
 	}
 }
 
-int clientImplementation::release(std::string path, struct fuse_file_info *fi) {
+int clientImplementation::client_release(std::string path, struct fuse_file_info *fi) {
 
 	read_request request;
-	d_response response;
-	ClientContext context;
+	c_response cresponse;
+	ClientContext context1;
 
 	request.set_fh( this->lookup(path));
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
+	
+	std::cout << "calling commit: " << std::endl;
+	Status status = stub_->server_commit(&context1, request, &cresponse);
+
+	if(status.ok()) {
+		if(cresponse.success() == 1) {
+			for(auto a = this->datastore.begin(); a != this->datastore.end();) {
+				if((*a).fh == request.fh()) {
+					a = this->datastore.erase(a);
+				}
+				else {
+					a++;
+				}
+			}
+		}
+		else {
+			// retry
+		}
+	}
+	else {
+		return -1;
+	}
+	
+	d_response response;
+	ClientContext context2;
 
 	std::cout << "calling release: " << std::endl;
-	Status status = stub_->server_release(&context, request, &response);
+	status = stub_->server_release(&context2, request, &response);
 
 	toFuseFileInfo(response.pfi(), fi);
 
@@ -410,7 +447,49 @@ int clientImplementation::release(std::string path, struct fuse_file_info *fi) {
 		return 0;
 	}
 	else {
-		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
+		std::cout << "rel " << status.error_code() << ": " << status.error_message() << std::endl;
     	return -1;
 	}
 }
+
+
+int clientImplementation::client_write(std::string path, const char *buf, int size, int offset, struct fuse_file_info *fi)
+{
+	write_request request;
+	write_response response;
+	ClientContext context;
+
+	std::cout << "write: " << path << " @ " << this->lookup(path) << ", " << size << ", " << offset << "\n";	
+	
+	proto_file_info pfi = toProtoFileInfo(fi);
+
+	request.set_size(size);
+	request.set_offset(offset);
+	request.set_fh( this->lookup(path) );
+	request.mutable_pfi()->CopyFrom(pfi);
+	std::string buffer(buf);
+	request.set_data(buffer);
+
+	SingleWrite swr;
+	swr.size = size;
+	swr.offset = offset;
+	swr.fh = this->lookup(path);
+	swr.data = buffer;
+	swr.pfi = pfi;
+
+	this->datastore.push_back(swr);
+
+	Status status = stub_->server_write(&context, request, &response);
+
+	if(status.ok()) {
+		if(response.status() == 0){
+			toFuseFileInfo(response.pfi(), fi);
+			return response.datasize();
+		}
+		return -1;
+	}
+
+}
+
+
+

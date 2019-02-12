@@ -44,6 +44,9 @@ using NfsProtocol::rmdir_request;
 using NfsProtocol::unlink_request;
 using NfsProtocol::lookup_request;
 using NfsProtocol::lookup_response;
+using NfsProtocol::write_request;
+using NfsProtocol::write_response;
+
 
 class serverImplementation final : public NfsServer::Service
 {
@@ -53,6 +56,12 @@ class serverImplementation final : public NfsServer::Service
 	std::map<std::string, int> stofh;
 	std::map<int, std::string> fhtos;
 	int fhcount;
+	std::vector<SingleWrite> datastore;
+
+	int addToLookup(std::string path);
+	std::string back_lookup(int fh);
+	void print_lookup();
+	void print_store();
 
   public:
 	serverImplementation(std::string path);
@@ -69,14 +78,9 @@ class serverImplementation final : public NfsServer::Service
 	Status server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response) override;
 	Status get_attributes(ServerContext *context, const attribute_request *request, attribute_response *response) override;
 	Status server_release(ServerContext *context, const read_request *request, d_response *response) override;
-	
+	Status server_write(ServerContext *context, const write_request *request, write_response *response) override;	
 	Status server_lookup(ServerContext *context, const lookup_request *request, lookup_response *response) override;
-	int addToLookup(std::string path);
-	std::string back_lookup(int fh);
-	void print_lookup();
-
-
-	
+	Status server_commit(ServerContext *context, const read_request *request, c_response *response) override;
 };
 
 #endif

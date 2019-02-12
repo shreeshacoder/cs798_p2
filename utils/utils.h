@@ -11,6 +11,16 @@
 using NfsProtocol::attributes;
 using NfsProtocol::proto_file_info;
 
+class SingleWrite {
+
+	public :
+		int fh;
+		int size;
+		int offset;
+		std::string data;
+		proto_file_info pfi;
+};
+
 struct DirEntry
 {
     struct stat st;
@@ -27,5 +37,7 @@ attributes toGstat(struct stat *st);
 
 void toCstat(attributes gstat, struct stat *st);
 
+void toCFileInfo(proto_file_info fuseFileInfo, struct fuse_file_info *fi);
 
+proto_file_info toGFileInfo(struct fuse_file_info *fi);
 #endif

@@ -6,7 +6,6 @@
 
 using std::experimental::filesystem::path;
 
-#define LOG true
 
 serverImplementation::serverImplementation(std::string path)
 {
@@ -16,6 +15,15 @@ serverImplementation::serverImplementation(std::string path)
 	this->fhtos[0] = "";
 	fhcount = 1;
 }
+
+void serverImplementation::print_store() {
+	std::cout << "---\n";
+	for(auto& i : this->datastore) {
+		std::cout << i.fh << " @ " << this->back_lookup(i.fh) << ", " << i.size << ", " << i.offset << "\n";
+	}
+	std::cout << "---\n";
+}
+
 
 void serverImplementation::print_lookup() {
 	std::cout << "---\n";
@@ -353,7 +361,6 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 	else
 	{
 		op = pread(fileHandle, buffer, request->size(), request->offset());
-		std::cout << "size: " << request->size() << ", "<<  buffer << "\n";
 		if (op == -1)
 		{
 			response->set_success(-1);
@@ -370,7 +377,8 @@ Status serverImplementation::server_read(ServerContext *context, const read_requ
 	return Status::OK;
 }
 
-Status serverImplementation::server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response) {
+Status serverImplementation::server_mknod(ServerContext *context, const read_directory_single_object *request, c_response *response)
+{
 
 	std::string filepath = this->base + request->name();
 	char *filepathChars;
@@ -384,17 +392,21 @@ Status serverImplementation::server_mknod(ServerContext *context, const read_dir
    
 	if (S_ISFIFO(mode)) {
 		op = mkfifo(filepathChars, mode);
-	} else {
+	}
+	else
+	{
 		op = mknod(filepathChars, mode, rdev);
 	}
 
-	if (op == -1) {
+	if (op == -1)
+	{
 		response->set_success(-1);
 		response->set_ern(errno);
 	}
-	else {
+	else
+	{
 		response->set_success(0);
-		response->set_ern(0);	
+		response->set_ern(0);
 	}
 	return Status::OK;
 }
@@ -415,5 +427,71 @@ Status serverImplementation::server_release(ServerContext *context, const read_r
 	response->set_success(0);
 	response->set_ern(0);
 	response->mutable_pfi()->CopyFrom(toProtoFileInfo(&fi));
+
 	return Status::OK;
+}
+
+Status serverImplementation::server_write(ServerContext *context, const write_request *request, write_response *response)
+{
+	std::cout << "server write\n";
+
+	SingleWrite swr;
+	swr.size = request->size();
+	swr.offset = request->offset();
+	swr.fh = request->fh();
+	struct fuse_file_info fi;
+	toFuseFileInfo(request->pfi(), &fi);
+	swr.pfi = toProtoFileInfo(&fi);
+	swr.data = request->data();
+
+	datastore.push_back(swr);
+	// this->print_store();
+
+	response->set_status(0);
+	response->set_datasize(request->size());
+	response->mutable_pfi()->CopyFrom(swr.pfi);
+
+	return Status::OK;
+	
+}
+
+Status serverImplementation::server_commit(ServerContext *context, const read_request *request, c_response *response) {
+
+	std::cout << "trying to commit.";
+	
+	int nfsfh = request->fh();
+
+	int fh, op;
+	std::string pth;
+
+	for(auto a = this->datastore.begin(); a != this->datastore.end(); a++) {
+		if((*a).fh == nfsfh) {
+			std::cout << "found to write.\n";
+			fh = (*a).pfi.fh();
+			if(fh == 0) {
+				pth = this->base + this->back_lookup(nfsfh);
+				fh = open(pth.c_str(), O_WRONLY);
+			}
+			// std::cout << *a.data << "\n";
+			op = pwrite(fh, (*a).data.c_str(), (*a).size, (*a).offset );
+			std::cout << "result of write, " << op << ", " << (*a).size << (*a).offset << "\n";
+			if(op == -1) {
+				response->set_success(0);
+				return Status::OK;
+			}
+		}
+	}
+	
+	for(auto a = this->datastore.begin(); a != this->datastore.end();) {
+		if((*a).fh == nfsfh) {
+			a = this->datastore.erase(a);
+		}
+		else {
+			a++;
+		}
+	}
+
+	response->set_success(0);
+	return Status::OK;
+
 }
