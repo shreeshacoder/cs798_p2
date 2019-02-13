@@ -500,15 +500,17 @@ Status serverImplementation::server_commit(ServerContext *context, const read_re
 			op = pwrite(fh, (*a).data.c_str(), (*a).size, (*a).offset );
 			std::cout << "result of write, " << op << ", " << (*a).size << ", " << (*a).offset << "\n";
 			if(op == -1) {
-				response->set_success(0);
+				response->set_success(-1);
 				return Status::OK;
 			}
 		}
 	}
-	
+		
+	int deleted = false;
 	for(auto a = this->datastore.begin(); a != this->datastore.end();) {
 		if((*a).fh == nfsfh) {
 			a = this->datastore.erase(a);
+			deleted = true;
 		}
 		else {
 			a++;
@@ -516,7 +518,13 @@ Status serverImplementation::server_commit(ServerContext *context, const read_re
 	}
 
 	this->print_store();
-	response->set_success(0);
+	if(deleted)
+		response->set_success(0);
+	else{
+		// no entries found to write to the disk.
+		response->set_success(1);
+	}
+
 	return Status::OK;
 
 }

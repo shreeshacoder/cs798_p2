@@ -432,13 +432,59 @@ int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev
 	}
 }
 
+int clientImplementation::client_retransmit_writes(std::string path, struct fuse_file_info *fi) { 
+
+	int fh = this->lookup(path);
+
+	for(auto a = this->datastore.begin(); a != this->datastore.end();) {
+		if( (*a).fh == fh ) {
+			write_request request;
+			write_response response;
+			ClientContext context;
+			request.set_size((*a).size);
+			request.set_offset((*a).offset);
+			request.set_data((*a).data.c_str());
+			request.set_cid(this->id);
+			proto_file_info pfi = (*a).pfi;
+			pfi.set_fh(0);
+			request.mutable_pfi()->CopyFrom(pfi);
+
+			Status status = stub_->server_write(&context, request, &response);
+
+			if(status.ok()) {
+				if(response.status() == 0){
+				}
+				else {
+					continue;
+				}
+			}
+			else 
+				continue;
+		}
+		a++;
+	}
+}
+
+
 int clientImplementation::client_commit(std::string path, struct fuse_file_info *fi) {
 
 	read_request request;
 	c_response response;
 	ClientContext context;
 
-	request.set_fh( this->lookup(path));
+	int fh = this->lookup(path);
+	bool isDirty = false;
+
+	for(auto& a : this->datastore) {
+		if( a.fh == fh ) {
+			isDirty = true;
+			break;
+		}
+	}
+	if(!isDirty)
+		return 0;
+
+	request.set_fh( this->lookup(path) );
 	request.mutable_pfi()->CopyFrom(toProtoFileInfo(fi));
 	request.set_cid(this->id);
 
@@ -446,7 +492,7 @@ int clientImplementation::client_commit(std::string path, struct fuse_file_info 
 	Status status = stub_->server_commit(&context, request, &response);
 
 	if(status.ok()) {
-		if(response.success() == 1) 
+		if(response.success() == 0) {
 			for(auto a = this->datastore.begin(); a != this->datastore.end();) 
 				if((*a).fh == request.fh()) {
 					a = this->datastore.erase(a);
@@ -454,12 +500,21 @@ int clientImplementation::client_commit(std::string path, struct fuse_file_info 
 				else {
 					a++;
 				} 
-		else {
-
+			return 0;
 		}
-		return 0;
+		else if(response.success() == 1){
+			// client feels it has something to write, but server refuses. hence, retransmit.
+			// and commit again.
+			this->client_retransmit_writes(path, fi);
+			return this->client_commit(path, fi);
+		}
+		else{
+			// write operation on server fails, return failure.
+			return -1;
+		}
 	} 
 	else {
+		// case of unresponsive server, hold the commit in a structure.
 		return -1;
 	}
 
@@ -533,6 +588,9 @@ int clientImplementation::client_write(std::string path, const char *buf, int si
 			return response.datasize();
 		}
 		return -1;
+	}
+	else {
+		std::cout << status.ok() << "\n";
 	}
 
 }

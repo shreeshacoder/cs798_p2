@@ -57,6 +57,7 @@ class clientImplementation
 	int lookup(std::string path);
 	std::vector<SingleWrite> datastore;
 	int client_commit(std::string path, struct fuse_file_info *fi);
+	int client_retransmit_writes(std::string path, struct fuse_file_info *fi);
 	std::string id;
 
   public:
