@@ -55,10 +55,13 @@ class clientImplementation
 	std::map<std::string, int> stofh;
 	std::map<int, std::string> fhtos;
 	int lookup(std::string path);
+	bool renewed;
 	std::vector<SingleWrite> datastore;
 	int client_commit(std::string path, struct fuse_file_info *fi);
 	int client_retransmit_writes(std::string path, struct fuse_file_info *fi);
 	std::string id;
+	void reset_lookups();
+	void renewing_connection();
 
   public:
 	clientImplementation(std::shared_ptr<Channel> channel);

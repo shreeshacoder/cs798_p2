@@ -270,9 +270,18 @@ Status serverImplementation::get_attributes(ServerContext *context, const attrib
 	// std::cout << "serverImplementationver getattr\n";
 
 	struct stat st;
+	std::string filepath;
+	filepath = request->path();
 
 	toCstat(request->attr(), &st);
-	std::string adjustedPath = this->base + this->back_lookup(request->fh());
+
+	std::string gotfromlookup = this->back_lookup(request->fh());
+	if(gotfromlookup.empty()) {
+		this->addToLookup(filepath);
+	}
+	gotfromlookup = this->back_lookup(request->fh());
+
+	std::string adjustedPath = this->base + gotfromlookup;
 
 	char *path = new char[adjustedPath.length() + 1];
 	strcpy(path, adjustedPath.c_str());

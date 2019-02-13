@@ -162,6 +162,7 @@ message readdir_response {
 
 message attribute_request {
 	int32 fh = 1;
+	string path = 4;
 	attributes attr = 2;
 	string cid = 3;
 }

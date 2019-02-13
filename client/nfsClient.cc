@@ -1,17 +1,33 @@
 #include "nfsClient.h"
+#include <chrono>
+#include <thread>
+#include <unistd.h>
 
 #define LOG true
 
+
 clientImplementation::clientImplementation(std::shared_ptr<Channel> channel)
 	: stub_(NfsServer::NewStub(channel)) {
-		this->stofh[""] = 0;
-		this->fhtos[0] = "";
+		this->reset_lookups();
 		char a[6];
 		alphanum_random(a, 6);
 		std::string tmp(a);
 		this->id = a;
 		std::cout << this->id << "\n";
+		this->renewed = true;
 	}
+
+void clientImplementation::renewing_connection() {
+	this->stub_ = NfsServer::NewStub(grpc::CreateChannel("localhost:3110", grpc::InsecureChannelCredentials()));
+	this->renewed = true;
+}
+
+void clientImplementation::reset_lookups() {
+	this->stofh.clear();
+	this->fhtos.clear();
+	this->stofh[""] = 0;
+	this->fhtos[0] = "";
+}
 
 
 void clientImplementation::print_store() {
@@ -56,8 +72,19 @@ int clientImplementation::lookup(std::string ref) {
 		if(status.ok()) {
 			this->stofh[refpathstring] = response.fh();
 			this->fhtos[response.fh()] = refpathstring;
+			return this->stofh[refpathstring];
 		}
-		return this->stofh[refpathstring];
+		else {
+			this->renewed = false;
+			std::cout << "cannot reach, sleeping\n";
+			std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+			std::cout << "retrying\n";
+			if(!renewed) {
+				this->reset_lookups();
+				this->renewing_connection();
+			}
+			return this->lookup(ref);
+		}
 
 	} else {
 	// if the path exists in the lookup, give the fh 
@@ -75,19 +102,30 @@ int clientImplementation::get_attributes(std::string path, struct stat *st)
 
 	int fh = this->lookup(path);
 	request.set_fh(fh);
+	request.set_path(path);
 	*request.mutable_attr() = toGstat(st);
 	request.set_cid(this->id);
 
+	std::cout << "actual " << std::endl;
 	Status status = stub_->get_attributes(&context, request, &response);
+
+	std::cout << "reaching \n";
 	
 	if (status.ok())
 	{
 		toCstat(response.attr(), st);
 		return response.status();
 	}
-	else
-	{
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->get_attributes( path, st);
 	}
 }
 
@@ -118,9 +156,16 @@ std::list<DirEntry> clientImplementation::read_directory(std::string path, int &
 		}
 		return entries;
 	}
-	else
-	{
-		return entries;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->read_directory(path, responseCode);
 	}
 }
 
@@ -158,10 +203,16 @@ int clientImplementation::client_mkdir(std::string pth, mode_t mode)
 			return (-response.ern());
 		return 0;
 	}
-	else
-	{
-		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_mkdir(pth, mode);
 	}
 }
 
@@ -187,10 +238,16 @@ int clientImplementation::client_rmdir(std::string path)
 		this->fhtos.erase(dirfh);
 		return 0;
 	}
-	else
-	{
-		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_rmdir(path);
 	}
 }
 
@@ -242,10 +299,16 @@ int clientImplementation::client_rename(std::string from, std::string to)
 
 		return 0;
 	}
-	else
-	{
-		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_rename(from, to);
 	}
 }
 
@@ -270,10 +333,16 @@ int clientImplementation::client_open(std::string path, struct fuse_file_info *f
 			return (-response.ern());
 		return 0;
 	}
-	else
-	{
-		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_open(path, fi);
 	}
 }
 
@@ -313,10 +382,16 @@ int clientImplementation::client_create(std::string pth, mode_t mode, struct fus
 			return (-response.ern());
 		return 0;
 	}
-	else
-	{
-		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_create(pth, mode, fi);
 	}
 }
 
@@ -344,10 +419,16 @@ int clientImplementation::client_truncate(std::string path, off_t size, struct f
 			return (-response.ern());
 		return 0;
 	}
-	else
-	{
-		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_truncate(path, size, fi);
 	}
 }
 
@@ -369,6 +450,17 @@ int clientImplementation::client_unlink(std::string path)
 		if (response.success() != 0)
 			return (-response.ern());
 		return 0;
+	}
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_unlink(path);
 	}
 }
 
@@ -399,9 +491,16 @@ int clientImplementation::client_read(std::string path, char* buffer,int size, i
 		strncpy(buffer, response.data().c_str(), size);
 		return response.size();
 	}
-	else
-	{
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_read(path, buffer, size, offset, fi);
 	}
 }
 
@@ -426,9 +525,16 @@ int clientImplementation::client_mknod(std::string path, mode_t mode, dev_t rdev
 			return (- response.ern());
 		return 0;
 	}
-	else {
-		std::cout << status.error_code() << ": " << status.error_message() << std::endl;
-		return -1;
+	else  {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_mknod(path, mode, rdev);
 	}
 }
 
@@ -458,8 +564,17 @@ int clientImplementation::client_retransmit_writes(std::string path, struct fuse
 					continue;
 				}
 			}
-			else 
-				continue;
+			else {
+				this->renewed = false;
+				std::cout << "cannot reach, sleeping\n";
+				std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+				std::cout << "retrying\n";
+				if(!renewed) {
+					this->reset_lookups();
+					this->renewing_connection();
+				}
+				return this->client_retransmit_writes(path, fi);
+			}
 		}
 		a++;
 	}
@@ -514,10 +629,16 @@ int clientImplementation::client_commit(std::string path, struct fuse_file_info 
 		}
 	} 
 	else {
-		// case of unresponsive server, hold the commit in a structure.
-		return -1;
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_commit(path, fi);
 	}
-
 }
 
 
@@ -547,8 +668,15 @@ int clientImplementation::client_release(std::string path, struct fuse_file_info
 		return 0;
 	}
 	else {
-		std::cout << "rel " << status.error_code() << ": " << status.error_message() << std::endl;
-    	return -1;
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_release(path, fi);
 	}
 }
 
@@ -590,7 +718,15 @@ int clientImplementation::client_write(std::string path, const char *buf, int si
 		return -1;
 	}
 	else {
-		std::cout << status.ok() << "\n";
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->client_write(path, buf, size, offset, fi);
 	}
 
 }
@@ -616,12 +752,16 @@ int clientImplementation::fsync(std::string path, int isdatasync, struct fuse_fi
 	{
 		return fsyncResponseObject.status();
 	}
-	else
-	{
-		if (LOG)
-			std::cout << status.error_code() << ": " << status.error_message()
-					  << std::endl;
-		return -1;
+	else {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->fsync(path, isdatasync, fi);
 	}
 }
 
@@ -645,11 +785,15 @@ int clientImplementation::flush(std::string path, struct fuse_file_info *fi)
 	{
 		return flushResponseObject.status();
 	}
-	else
-	{
-		if (LOG)
-			std::cout << status.error_code() << ": " << status.error_message()
-					  << std::endl;
-		return -1;
+	else  {
+		this->renewed = false;
+		std::cout << "cannot reach, sleeping\n";
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+		std::cout << "retrying\n";
+		if(!renewed) {
+			this->reset_lookups();
+			this->renewing_connection();
+		}
+		return this->flush(path, fi);
 	}
 }
